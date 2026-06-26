@@ -57,7 +57,9 @@ whatsapp_sessions (org_id, session_name, status)
   `organization`+`profiles`+roles, RLS, trigger de bootstrap (1º user = admin),
   login/registo, rotas de confirmação, shell com sidebar protegida, dashboard,
   página de Equipa (admin).
-- [ ] **Fase 3 — Leads.** Schema, CRUD, import CSV, pipeline de estados, filtros, lixeira.
+- [x] **Fase 3 — Leads.** Schema `leads` (+RLS, soft-delete), CRUD, import CSV,
+  pipeline Novo/Contactado/Respondeu, filtros + pesquisa, lixeira (restaurar/
+  eliminar), dashboard ligada às contagens reais.
 - [ ] **Fase 4 — Templates + IA.** Editor multicanal, variáveis de merge,
   gerar/regenerar com DeepSeek, contexto "Sobre Você".
 - [ ] **Fase 5 — Canais.** WAHA (QR + estado) e Email (Resend) + envio de teste.

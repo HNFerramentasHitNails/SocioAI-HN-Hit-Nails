@@ -14,6 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
+      leads: {
+        Row: {
+          city: string | null
+          company: string | null
+          country: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          email: string | null
+          has_website: boolean | null
+          id: string
+          name: string | null
+          niche: string | null
+          notes: string | null
+          org_id: string
+          phone: string | null
+          quality_score: number | null
+          rating: number | null
+          source: Database["public"]["Enums"]["lead_source"]
+          state: string | null
+          status: Database["public"]["Enums"]["lead_status"]
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          company?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          has_website?: boolean | null
+          id?: string
+          name?: string | null
+          niche?: string | null
+          notes?: string | null
+          org_id: string
+          phone?: string | null
+          quality_score?: number | null
+          rating?: number | null
+          source?: Database["public"]["Enums"]["lead_source"]
+          state?: string | null
+          status?: Database["public"]["Enums"]["lead_status"]
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          company?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          has_website?: boolean | null
+          id?: string
+          name?: string | null
+          niche?: string | null
+          notes?: string | null
+          org_id?: string
+          phone?: string | null
+          quality_score?: number | null
+          rating?: number | null
+          source?: Database["public"]["Enums"]["lead_source"]
+          state?: string | null
+          status?: Database["public"]["Enums"]["lead_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization: {
         Row: {
           created_at: string
@@ -100,6 +184,8 @@ export type Database = {
       }
     }
     Enums: {
+      lead_source: "manual" | "imported" | "marketplace"
+      lead_status: "novo" | "contatado" | "respondeu"
       user_role: "admin" | "member"
     }
     CompositeTypes: {
@@ -228,6 +314,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      lead_source: ["manual", "imported", "marketplace"],
+      lead_status: ["novo", "contatado", "respondeu"],
       user_role: ["admin", "member"],
     },
   },
