@@ -4,9 +4,15 @@ import { processQueue } from "@/lib/campaigns/engine";
 import { createAdminClient } from "@/lib/supabase/server";
 
 /**
- * Cron endpoint that sends due queued messages. Scheduled via vercel.json.
- * Protected by CRON_SECRET (Vercel Cron sends it as a Bearer token). Uses the
- * Supabase service role key (bypasses RLS) since it runs without a user session.
+ * Cron endpoint that sends due queued messages.
+ * Protected by CRON_SECRET. Uses the Supabase service role key (bypasses RLS)
+ * since it runs without a user session.
+ *
+ * Trigger it on a schedule via one of:
+ *  - Vercel Cron (add a `crons` entry in vercel.json; sub-daily schedules
+ *    require a Vercel Pro plan — Hobby allows once/day), or
+ *  - An external scheduler (e.g. cron-job.org) calling
+ *    GET /api/cron/send?secret=<CRON_SECRET> every few minutes.
  */
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;

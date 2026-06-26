@@ -105,6 +105,11 @@ Environment Variables) à medida que as fases as exigem:
 - `EVOLUTION_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_INSTANCE` — WhatsApp (Fase 5).
 - `CRON_SECRET` — proteger o endpoint de envio agendado (Fase 6).
 
+**Envio agendado (cron):** o endpoint é `GET /api/cron/send?secret=<CRON_SECRET>`.
+Para o disparar periodicamente: Vercel Cron (sub-diário só no plano Pro; Hobby =
+1x/dia) **ou** um cron externo gratuito (ex: cron-job.org) a cada 5 min. O envio
+manual ("enviar agora") funciona em qualquer plano.
+
 ## Fora de âmbito (futuro)
 
 Marketplace/Google Places · SMS · Stripe/billing por uso · revenda/white-label/Super Admin.
