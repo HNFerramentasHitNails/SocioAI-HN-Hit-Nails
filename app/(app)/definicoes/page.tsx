@@ -1,16 +1,19 @@
 import { PageHeader } from "@/components/page-header";
-import { ComingSoon } from "@/components/coming-soon";
+import { ChannelsSettings } from "@/components/settings/channels-settings";
 import { requireAdmin } from "@/lib/supabase/auth";
+import { getChannelSettings } from "./actions";
 
 export default async function DefinicoesPage() {
   await requireAdmin();
+  const settings = await getChannelSettings();
+
   return (
     <>
       <PageHeader
         title="Definições"
-        description="Branding e integrações da tua organização."
+        description="Configura os canais de envio (WhatsApp e Email)."
       />
-      <ComingSoon phase="Fase 8" />
+      <ChannelsSettings settings={settings} />
     </>
   );
 }

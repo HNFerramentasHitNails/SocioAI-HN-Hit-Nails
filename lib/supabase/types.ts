@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      integrations: {
+        Row: {
+          config: Json
+          enabled: boolean
+          org_id: string
+          status: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          enabled?: boolean
+          org_id: string
+          status?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          enabled?: boolean
+          org_id?: string
+          status?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integrations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           city: string | null

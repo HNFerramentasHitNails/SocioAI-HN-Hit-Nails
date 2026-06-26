@@ -64,7 +64,10 @@ whatsapp_sessions (org_id, session_name, status)
   (WhatsApp/Email), variáveis de merge, contexto "Sobre ti", gerar/regenerar com
   **DeepSeek V4 Pro** (`deepseek-v4-pro`, modelo de raciocínio), contagem de
   caracteres por canal, CRUD completo.
-- [ ] **Fase 5 — Canais.** WAHA (QR + estado) e Email (Resend) + envio de teste.
+- [x] **Fase 5 — Canais.** Tabela `integrations` (admin-only, RLS), clientes WAHA
+  (estado/QR/iniciar/enviar) e Resend, render de variáveis de merge, dispatcher
+  unificado, e Definições → Canais (config + estado + QR + envio de teste).
+  Config por UI (DB) ou env. *Requer credenciais WAHA/Resend para enviar.*
 - [ ] **Fase 6 — Campanhas.** Wizard 5 passos, fila de envio (Cron), rate-limiting,
   tracking de estado/respostas.
 - [ ] **Fase 7 — Dashboard + Analytics.** KPIs, gráficos por canal, saúde das campanhas.
