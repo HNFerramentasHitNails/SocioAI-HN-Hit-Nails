@@ -53,8 +53,10 @@ whatsapp_sessions (org_id, session_name, status)
 - [x] **Fase 1 — Scaffold + infra.** Next 16, Tailwind v4, shadcn/ui, clientes
   Supabase (client/server/proxy), branding, env, build verde, projeto Supabase
   criado, deploy Vercel.
-- [ ] **Fase 2 — Auth + base single-tenant.** Supabase Auth (email/password),
-  `organization`+`profiles`+roles, RLS, login, layout protegido, gestão de Equipa.
+- [x] **Fase 2 — Auth + base single-tenant.** Supabase Auth (email/password),
+  `organization`+`profiles`+roles, RLS, trigger de bootstrap (1º user = admin),
+  login/registo, rotas de confirmação, shell com sidebar protegida, dashboard,
+  página de Equipa (admin).
 - [ ] **Fase 3 — Leads.** Schema, CRUD, import CSV, pipeline de estados, filtros, lixeira.
 - [ ] **Fase 4 — Templates + IA.** Editor multicanal, variáveis de merge,
   gerar/regenerar com DeepSeek, contexto "Sobre Você".
