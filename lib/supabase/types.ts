@@ -293,6 +293,7 @@ export type Database = {
       }
       organization: {
         Row: {
+          about_context: string | null
           created_at: string
           id: string
           leads_limit: number
@@ -304,6 +305,7 @@ export type Database = {
           weekly_send_limit: number
         }
         Insert: {
+          about_context?: string | null
           created_at?: string
           id?: string
           leads_limit?: number
@@ -315,6 +317,7 @@ export type Database = {
           weekly_send_limit?: number
         }
         Update: {
+          about_context?: string | null
           created_at?: string
           id?: string
           leads_limit?: number

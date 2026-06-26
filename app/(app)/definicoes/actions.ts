@@ -74,13 +74,14 @@ export type Branding = {
   name: string;
   primary_color: string | null;
   logo_url: string | null;
+  about_context: string | null;
 };
 
 export async function getBranding(): Promise<Branding | null> {
   const { supabase } = await requireAdmin();
   const { data } = await supabase
     .from("organization")
-    .select("id, name, primary_color, logo_url")
+    .select("id, name, primary_color, logo_url, about_context")
     .limit(1)
     .single();
   return data;
@@ -90,12 +91,15 @@ export async function saveBranding(input: {
   name?: string;
   primaryColor?: string;
   logoUrl?: string | null;
+  aboutContext?: string;
 }): Promise<{ ok?: boolean; error?: string }> {
   const { supabase, profile } = await requireAdmin();
   const update: TablesUpdate<"organization"> = {};
   if (input.name?.trim()) update.name = input.name.trim();
   if (input.primaryColor?.trim()) update.primary_color = input.primaryColor.trim();
   if (input.logoUrl !== undefined) update.logo_url = input.logoUrl || null;
+  if (input.aboutContext !== undefined)
+    update.about_context = input.aboutContext.trim() || null;
 
   const { error } = await supabase
     .from("organization")

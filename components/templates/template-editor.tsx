@@ -37,7 +37,13 @@ import type { Tables } from "@/lib/supabase/types";
 
 type Template = Tables<"templates">;
 
-export function TemplateEditor({ template }: { template?: Template }) {
+export function TemplateEditor({
+  template,
+  defaultAbout,
+}: {
+  template?: Template;
+  defaultAbout?: string;
+}) {
   const router = useRouter();
   const isEdit = Boolean(template);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
@@ -51,7 +57,7 @@ export function TemplateEditor({ template }: { template?: Template }) {
   const [objective, setObjective] = useState(template?.objective ?? "iniciar");
   const [tone, setTone] = useState(template?.tone ?? "humano");
   const [aboutContext, setAboutContext] = useState(
-    template?.about_context ?? "",
+    template?.about_context ?? defaultAbout ?? "",
   );
   const [body, setBody] = useState(template?.body ?? "");
 

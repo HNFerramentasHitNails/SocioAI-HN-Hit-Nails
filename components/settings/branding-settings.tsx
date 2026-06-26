@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function BrandingSettings({ branding }: { branding: Branding }) {
@@ -18,6 +19,7 @@ export function BrandingSettings({ branding }: { branding: Branding }) {
   const [name, setName] = useState(branding.name);
   const [color, setColor] = useState(branding.primary_color ?? "#7c3aed");
   const [logoUrl, setLogoUrl] = useState<string | null>(branding.logo_url);
+  const [aboutContext, setAboutContext] = useState(branding.about_context ?? "");
   const [uploading, setUploading] = useState(false);
   const [saving, startSaving] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -48,6 +50,7 @@ export function BrandingSettings({ branding }: { branding: Branding }) {
         name,
         primaryColor: color,
         logoUrl,
+        aboutContext,
       });
       if (res.error) toast.error(res.error);
       else {
@@ -141,6 +144,17 @@ export function BrandingSettings({ branding }: { branding: Branding }) {
               }}
             />
           </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="org-about">Sobre a empresa (contexto padrão para a IA)</Label>
+          <Textarea
+            id="org-about"
+            value={aboutContext}
+            onChange={(e) => setAboutContext(e.target.value)}
+            rows={5}
+            placeholder="O que ofereces? Que problema resolves? Prova/diferencial. Isto é usado como contexto por defeito ao gerar templates com IA."
+          />
         </div>
 
         <Button onClick={onSave} disabled={saving} className="self-start">
