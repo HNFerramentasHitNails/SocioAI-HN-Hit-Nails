@@ -35,6 +35,7 @@ function regionCodeFor(country: string): string {
 }
 
 export function MarketplaceView() {
+  const [source, setSource] = useState<"osm" | "google">("osm");
   const [category, setCategory] = useState<string>("nails");
   const [customKeywords, setCustomKeywords] = useState("");
   const [quantity, setQuantity] = useState<number>(20);
@@ -81,6 +82,8 @@ export function MarketplaceView() {
     }
     startSearch(async () => {
       const res = await searchMarketplace({
+        source,
+        category,
         niche,
         keywords,
         city,
@@ -120,6 +123,22 @@ export function MarketplaceView() {
       {/* Filtros */}
       <Card>
         <CardContent className="grid gap-4 pt-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="flex flex-col gap-2">
+            <Label>Fonte</Label>
+            <Select
+              value={source}
+              onValueChange={(v) => setSource(v as "osm" | "google")}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="osm">OpenStreetMap (grátis)</SelectItem>
+                <SelectItem value="google">Google Places</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex flex-col gap-2">
             <Label>Categoria / Nicho</Label>
             <Select value={category} onValueChange={setCategory}>
@@ -298,8 +317,10 @@ export function MarketplaceView() {
         <Link href="/leads" className="text-primary hover:underline">
           Leads
         </Link>{" "}
-        (origem: marketplace). Configura a chave Google em Definições → Geração de
-        leads.
+        (origem: marketplace). O <strong>OpenStreetMap</strong> é grátis (sem
+        chave), mas tem menos telefones e não tem avaliações. O{" "}
+        <strong>Google Places</strong> dá melhor qualidade — configura a chave em
+        Definições → Geração de leads.
       </p>
     </div>
   );

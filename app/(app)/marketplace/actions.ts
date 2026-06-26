@@ -5,8 +5,11 @@ import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/supabase/auth";
 import { resolvePlacesConfig } from "@/lib/integrations/config";
 import { searchPlaces, PlacesError, type PlaceLead } from "@/lib/integrations/places";
+import { searchOsm, OsmError } from "@/lib/integrations/osm";
 
 export async function searchMarketplace(params: {
+  source: "osm" | "google";
+  category: string;
   niche: string | null;
   keywords: string;
   city: string;
@@ -17,6 +20,28 @@ export async function searchMarketplace(params: {
   max: number;
 }): Promise<{ results?: PlaceLead[]; error?: string }> {
   const { supabase } = await requireProfile();
+
+  // Free source: OpenStreetMap (no key / billing required).
+  if (params.source === "osm") {
+    try {
+      const results = await searchOsm({
+        category: params.category,
+        keywords: params.keywords,
+        city: params.city,
+        country: params.country,
+        website: params.website,
+        max: params.max,
+        niche: params.niche,
+      });
+      return { results };
+    } catch (e) {
+      return {
+        error: e instanceof OsmError ? e.message : "Falha na pesquisa de leads.",
+      };
+    }
+  }
+
+  // Google Places (requires API key).
   const { data } = await supabase
     .from("integrations")
     .select("config")
@@ -26,7 +51,17 @@ export async function searchMarketplace(params: {
     (data?.config ?? null) as Record<string, unknown> | null,
   );
   try {
-    const results = await searchPlaces({ config: cfg, ...params });
+    const results = await searchPlaces({
+      config: cfg,
+      niche: params.niche,
+      keywords: params.keywords,
+      city: params.city,
+      country: params.country,
+      regionCode: params.regionCode,
+      minRating: params.minRating,
+      website: params.website,
+      max: params.max,
+    });
     return { results };
   } catch (e) {
     return {
