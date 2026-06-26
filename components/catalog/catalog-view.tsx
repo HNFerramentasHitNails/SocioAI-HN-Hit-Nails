@@ -2,7 +2,14 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import {
+  Plus,
+  Search,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -10,6 +17,7 @@ import {
   deleteCatalogItem,
 } from "@/app/(app)/catalogo/actions";
 import { CatalogFormDialog } from "@/components/catalog/catalog-form-dialog";
+import { CatalogImportDialog } from "@/components/catalog/catalog-import-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -64,13 +72,22 @@ export function CatalogView({ items }: { items: Item[] }) {
             className="pl-9"
           />
         </div>
-        <CatalogFormDialog
-          trigger={
-            <Button className="gap-2">
-              <Plus className="size-4" /> Novo item
-            </Button>
-          }
-        />
+        <div className="flex items-center gap-2">
+          <CatalogImportDialog
+            trigger={
+              <Button variant="outline" className="gap-2">
+                <Upload className="size-4" /> Importar CSV
+              </Button>
+            }
+          />
+          <CatalogFormDialog
+            trigger={
+              <Button className="gap-2">
+                <Plus className="size-4" /> Novo item
+              </Button>
+            }
+          />
+        </div>
       </div>
 
       {CATALOG_TYPES.map((t) => {

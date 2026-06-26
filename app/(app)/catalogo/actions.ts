@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 
 import { requireProfile } from "@/lib/supabase/auth";
+import type { TablesInsert } from "@/lib/supabase/types";
 
-export type CatalogResult = { ok?: boolean; error?: string };
+export type CatalogResult = { ok?: boolean; error?: string; count?: number };
 
 function clean(v: FormDataEntryValue | null): string | null {
   const s = String(v ?? "").trim();
@@ -79,6 +80,53 @@ export async function toggleCatalogItem(
   if (error) return { error: error.message };
   revalidatePath("/catalogo");
   return { ok: true };
+}
+
+export type ImportRow = {
+  type?: string;
+  category?: string;
+  name?: string;
+  description?: string;
+  url?: string;
+  price?: string;
+  tags?: string[];
+};
+
+function normType(t?: string): "product" | "training" | "news" {
+  const x = (t ?? "").toLowerCase();
+  if (x.startsWith("form") || x === "training") return "training";
+  if (x.startsWith("nov") || x === "news") return "news";
+  return "product";
+}
+
+export async function importCatalogItems(
+  rows: ImportRow[],
+): Promise<CatalogResult> {
+  const { supabase, profile } = await requireProfile();
+
+  const valid: TablesInsert<"catalog_items">[] = rows
+    .filter((r) => (r.name ?? "").trim())
+    .map((r) => ({
+      org_id: profile.org_id!,
+      type: normType(r.type),
+      name: r.name!.trim(),
+      category: r.category?.trim() || null,
+      description: r.description?.trim() || null,
+      url: r.url?.trim() || null,
+      price: r.price?.trim() || null,
+      tags: Array.isArray(r.tags) ? r.tags : [],
+    }));
+
+  if (valid.length === 0) {
+    return { error: "Nenhuma linha válida (falta o nome)." };
+  }
+
+  const { error, count } = await supabase
+    .from("catalog_items")
+    .insert(valid, { count: "exact" });
+  if (error) return { error: error.message };
+  revalidatePath("/catalogo");
+  return { ok: true, count: count ?? valid.length };
 }
 
 export async function deleteCatalogItem(id: string): Promise<CatalogResult> {
