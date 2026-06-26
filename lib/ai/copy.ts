@@ -15,6 +15,7 @@ export type CopyParams = {
   tone?: string | null;
   aboutContext?: string | null;
   currentBody?: string | null;
+  catalog?: string | null;
 };
 
 function label<T extends { value: string; label: string }>(
@@ -50,6 +51,12 @@ export function buildCopyPrompt(params: CopyParams): {
   if (params.aboutContext?.trim()) {
     lines.push(
       `\nContexto sobre quem envia (usa para fundamentar o valor):\n${params.aboutContext.trim()}`,
+    );
+  }
+
+  if (params.catalog?.trim()) {
+    lines.push(
+      `\nCatálogo disponível (menciona produtos/formações reais quando relevante; não inventes):\n${params.catalog.trim()}`,
     );
   }
 

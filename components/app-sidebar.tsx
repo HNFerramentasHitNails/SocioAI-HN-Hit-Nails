@@ -17,6 +17,7 @@ import {
   Store,
   Users2,
   MessagesSquare,
+  BookText,
 } from "lucide-react";
 
 import { signOut } from "@/app/login/actions";
@@ -54,6 +55,7 @@ const NAV: NavItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Leads", href: "/leads", icon: Users },
   { title: "Marketplace", href: "/marketplace", icon: Store },
+  { title: "Catálogo", href: "/catalogo", icon: BookText },
   { title: "Templates", href: "/templates", icon: FileText },
   { title: "Campanhas", href: "/campaigns", icon: Send },
   { title: "Conversas", href: "/conversas", icon: MessagesSquare },

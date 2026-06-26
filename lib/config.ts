@@ -52,6 +52,20 @@ export const MESSAGE_TONES = [
 ] as const;
 export type MessageTone = (typeof MESSAGE_TONES)[number]["value"];
 
+/** Catalog item types (products / trainings / news) for the AI knowledge base. */
+export const CATALOG_TYPES = [
+  { value: "product", label: "Produto" },
+  { value: "training", label: "Formação" },
+  { value: "news", label: "Novidade" },
+] as const;
+export type CatalogType = (typeof CATALOG_TYPES)[number]["value"];
+
+export const CATALOG_TYPE_LABELS: Record<CatalogType, string> = {
+  product: "Produtos",
+  training: "Formações",
+  news: "Novidades",
+};
+
 /** Marketplace lead categories (label + Google Places search keywords). */
 export const MARKETPLACE_CATEGORIES = [
   { value: "beauty", label: "Salão de beleza", keywords: "salão de beleza" },

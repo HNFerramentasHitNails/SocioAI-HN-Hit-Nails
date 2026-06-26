@@ -112,6 +112,51 @@ export type Database = {
           },
         ]
       }
+      catalog_items: {
+        Row: {
+          active: boolean
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          org_id: string
+          price: string | null
+          tags: string[]
+          type: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          active?: boolean
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          org_id: string
+          price?: string | null
+          tags?: string[]
+          type: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          active?: boolean
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          org_id?: string
+          price?: string | null
+          tags?: string[]
+          type?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       conversation_messages: {
         Row: {
           body: string

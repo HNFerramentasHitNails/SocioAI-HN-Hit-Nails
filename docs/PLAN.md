@@ -106,6 +106,10 @@ whatsapp_sessions (org_id, session_name, status)
   Travões: opt-out, handoff para humano, limite de turnos, pausa por lead.
   Página **Conversas** (ler, pausar/retomar IA, resposta manual). Config em
   Definições → Agente de conversação.
+- **Catálogo de conhecimento:** produtos, formações e novidades (tabela
+  `catalog_items`, editável em **Catálogo**) que **alimenta a IA** — o agente e a
+  geração de templates recebem o catálogo ativo para recomendar itens reais.
+  Semeado a partir da análise de hnhitnails.com.
 
 ### Próximos passos opcionais (fora do MVP)
 SMS, Stripe/billing, recuperação de password in-app, editar limites/quotas pela UI.

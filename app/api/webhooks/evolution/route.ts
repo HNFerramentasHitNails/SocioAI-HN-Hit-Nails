@@ -12,6 +12,7 @@ import {
   detectOptOut,
   detectHandoff,
 } from "@/lib/agent/agent";
+import { getCatalogContext } from "@/lib/agent/catalog";
 
 type EvoMessage = {
   key?: { remoteJid?: string; fromMe?: boolean };
@@ -143,6 +144,7 @@ export async function POST(request: NextRequest) {
       agent: resolveAgentConfig(agentRow?.config),
       agentEnabled: agentRow?.enabled ?? false,
       about: ((org?.about_context as string) ?? "") || "",
+      catalog: await getCatalogContext(supabase, orgId),
     };
   }
   async function getCfg(orgId: string) {
@@ -248,6 +250,7 @@ export async function POST(request: NextRequest) {
         about: cfg.about,
         agent: cfg.agent,
         ai: cfg.ai,
+        catalog: cfg.catalog,
       });
       await sendText(cfg.wa, lead.phone!, reply);
       await supabase.from("conversation_messages").insert({

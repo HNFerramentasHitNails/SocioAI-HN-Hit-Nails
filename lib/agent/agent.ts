@@ -47,6 +47,7 @@ export async function generateAgentReply(opts: {
   about: string;
   agent: AgentConfig;
   ai: AiConfig;
+  catalog?: string;
 }): Promise<string> {
   const system = `És o assistente de vendas da HN Hit Nails — empresa portuguesa de produtos profissionais de unhas e estética e formações certificadas DGERT.
 Falas SEMPRE em português de Portugal (PT-PT), de forma simpática, humana e BREVE (estilo WhatsApp).
@@ -58,9 +59,10 @@ Regras:
 - NUNCA inventes preços, stock, promoções ou prazos. Se não tiveres a certeza, diz que confirmas ou encaminha para a loja.
 - Mensagens curtas (1 a 4 frases), emojis com moderação.
 - Se o cliente quiser falar com uma pessoa, diz que vais passar a um colega.
-- Se o cliente pedir para parar, respeita e despede-te com educação.${
+- Se o cliente pedir para parar, respeita e despede-te com educação.
+- Faz recomendações apenas com base no catálogo abaixo; não inventes produtos, formações ou preços.${
     opts.about ? `\n\nSobre a empresa:\n${opts.about}` : ""
-  }${opts.agent.instructions ? `\n\nInstruções adicionais:\n${opts.agent.instructions}` : ""}`;
+  }${opts.catalog ? `\n\nCatálogo (produtos, formações e novidades disponíveis):\n${opts.catalog}` : ""}${opts.agent.instructions ? `\n\nInstruções adicionais:\n${opts.agent.instructions}` : ""}`;
 
   const messages: ChatMessage[] = [{ role: "system", content: system }];
   for (const m of opts.history) {

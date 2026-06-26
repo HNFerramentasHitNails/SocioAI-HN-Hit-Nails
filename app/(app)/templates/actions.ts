@@ -7,6 +7,7 @@ import { requireProfile } from "@/lib/supabase/auth";
 import { AIError, generateText } from "@/lib/ai/client";
 import { buildCopyPrompt, extractVariables, type CopyParams } from "@/lib/ai/copy";
 import { resolveAiConfig } from "@/lib/integrations/config";
+import { getCatalogContext } from "@/lib/agent/catalog";
 import type { Channel } from "@/lib/config";
 
 export type TemplateActionResult = {
@@ -98,7 +99,8 @@ export async function generateBody(
     const aiConfig = resolveAiConfig(
       (data?.config ?? null) as Record<string, unknown> | null,
     );
-    const { system, prompt } = buildCopyPrompt(params);
+    const catalog = await getCatalogContext(supabase);
+    const { system, prompt } = buildCopyPrompt({ ...params, catalog });
     const body = await generateText({ system, prompt, config: aiConfig });
     return { body };
   } catch (e) {
