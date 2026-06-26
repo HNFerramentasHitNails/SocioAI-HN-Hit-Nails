@@ -92,9 +92,13 @@ whatsapp_sessions (org_id, session_name, status)
 - **Convites de equipa:** admin cria membros (Equipa → Convidar) + promover/
   despromover/remover. Requer `SUPABASE_SERVICE_ROLE_KEY`.
 - **Limites/quotas:** leads (criação/import) e envio (mensal + semanal) impostos.
+- **Marketplace de leads:** pesquisa de negócios locais por nicho+cidade via
+  **Google Places API (New)** (filtros: quantidade, avaliação mínima, website) e
+  importação como leads (origem `marketplace`, respeitando o limite). Key Google
+  configurável em Definições → Geração de leads.
 
 ### Próximos passos opcionais (fora do MVP)
-Marketplace/Google Places, SMS, Stripe/billing, recuperação de password in-app.
+SMS, Stripe/billing, recuperação de password in-app.
 
 ## Itens que dependem do cliente (chaves/infra)
 

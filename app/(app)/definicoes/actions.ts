@@ -8,8 +8,10 @@ import {
   ChannelError,
   resolveAiConfig,
   resolveEmailConfig,
+  resolvePlacesConfig,
   resolveWhatsappConfig,
 } from "@/lib/integrations/config";
+import { searchPlaces, PlacesError } from "@/lib/integrations/places";
 import * as evolution from "@/lib/integrations/evolution";
 import { sendEmail } from "@/lib/integrations/email";
 import { AIError, generateText } from "@/lib/ai/client";
@@ -305,6 +307,61 @@ export async function saveAiConfig(
   if (error) return { error: error.message };
   revalidatePath("/definicoes");
   return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Google Places (Marketplace de leads)
+// ---------------------------------------------------------------------------
+
+export type PlacesSettings = { enabled: boolean; hasApiKey: boolean };
+
+export async function getPlacesSettings(): Promise<PlacesSettings> {
+  const { byType } = await loadRows();
+  const p = byType("places");
+  const cfg = (p?.config ?? {}) as Record<string, unknown>;
+  return {
+    enabled: p?.enabled ?? false,
+    hasApiKey: Boolean(cfg.api_key) || Boolean(process.env.GOOGLE_PLACES_API_KEY),
+  };
+}
+
+export async function savePlacesConfig(
+  formData: FormData,
+): Promise<{ ok?: boolean; error?: string }> {
+  const { supabase, orgId, byType } = await loadRows();
+  const existing = (byType("places")?.config ?? {}) as Record<string, unknown>;
+  const apiKeyInput = clean(formData.get("api_key"));
+  const config = {
+    api_key: apiKeyInput || (existing.api_key as string) || "",
+  };
+  const { error } = await supabase.from("integrations").upsert(
+    { org_id: orgId, type: "places", config, enabled: true },
+    { onConflict: "org_id,type" },
+  );
+  if (error) return { error: error.message };
+  revalidatePath("/definicoes");
+  return { ok: true };
+}
+
+export async function testPlaces(): Promise<{ ok?: boolean; error?: string }> {
+  const { byType } = await loadRows();
+  const cfg = resolvePlacesConfig(byType("places")?.config);
+  try {
+    await searchPlaces({
+      config: cfg,
+      niche: null,
+      keywords: "restaurante",
+      city: "Lisboa",
+      country: "Portugal",
+      regionCode: "PT",
+      minRating: 0,
+      website: "any",
+      max: 1,
+    });
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof PlacesError ? e.message : "Falha ao testar." };
+  }
 }
 
 export async function testAi(): Promise<{

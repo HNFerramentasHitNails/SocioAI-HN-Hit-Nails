@@ -2,15 +2,22 @@ import { PageHeader } from "@/components/page-header";
 import { ChannelsSettings } from "@/components/settings/channels-settings";
 import { BrandingSettings } from "@/components/settings/branding-settings";
 import { AiSettingsCard } from "@/components/settings/ai-settings";
+import { PlacesSettingsCard } from "@/components/settings/places-settings";
 import { requireAdmin } from "@/lib/supabase/auth";
-import { getChannelSettings, getBranding, getAiSettings } from "./actions";
+import {
+  getChannelSettings,
+  getBranding,
+  getAiSettings,
+  getPlacesSettings,
+} from "./actions";
 
 export default async function DefinicoesPage() {
   await requireAdmin();
-  const [settings, branding, aiSettings] = await Promise.all([
+  const [settings, branding, aiSettings, placesSettings] = await Promise.all([
     getChannelSettings(),
     getBranding(),
     getAiSettings(),
+    getPlacesSettings(),
   ]);
 
   return (
@@ -39,6 +46,13 @@ export default async function DefinicoesPage() {
             Canais
           </h2>
           <ChannelsSettings settings={settings} />
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+            Geração de leads
+          </h2>
+          <PlacesSettingsCard settings={placesSettings} />
         </section>
       </div>
     </>

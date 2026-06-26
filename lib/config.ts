@@ -52,6 +52,24 @@ export const MESSAGE_TONES = [
 ] as const;
 export type MessageTone = (typeof MESSAGE_TONES)[number]["value"];
 
+/** Marketplace lead categories (label + Google Places search keywords). */
+export const MARKETPLACE_CATEGORIES = [
+  { value: "beauty", label: "Salão de beleza", keywords: "salão de beleza" },
+  { value: "nails", label: "Unhas / Manicure", keywords: "manicure unhas" },
+  { value: "hair", label: "Cabeleireiro", keywords: "cabeleireiro" },
+  { value: "spa", label: "Spa / Estética", keywords: "spa estética" },
+  { value: "restaurant", label: "Restaurante", keywords: "restaurante" },
+  { value: "cafe", label: "Café / Pastelaria", keywords: "café pastelaria" },
+  { value: "clinic", label: "Clínica", keywords: "clínica" },
+  { value: "gym", label: "Ginásio", keywords: "ginásio" },
+  { value: "realestate", label: "Imobiliária", keywords: "imobiliária" },
+  { value: "legal", label: "Advogados", keywords: "advogados" },
+  { value: "accounting", label: "Contabilidade", keywords: "contabilidade" },
+  { value: "other", label: "Outro (personalizado)", keywords: "" },
+] as const;
+
+export const MARKETPLACE_QUANTITIES = [10, 20, 50, 100] as const;
+
 /** Merge variables available in templates. */
 export const MERGE_VARIABLES = [
   "{{name}}",

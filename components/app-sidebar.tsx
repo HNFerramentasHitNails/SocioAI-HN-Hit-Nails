@@ -14,6 +14,7 @@ import {
   LogOut,
   ChevronsUpDown,
   BarChart3,
+  Store,
 } from "lucide-react";
 
 import { signOut } from "@/app/login/actions";
@@ -50,6 +51,7 @@ type NavItem = {
 const NAV: NavItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Leads", href: "/leads", icon: Users },
+  { title: "Marketplace", href: "/marketplace", icon: Store },
   { title: "Templates", href: "/templates", icon: FileText },
   { title: "Campanhas", href: "/campaigns", icon: Send },
   { title: "Análises", href: "/analytics", icon: BarChart3 },

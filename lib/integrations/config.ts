@@ -50,3 +50,12 @@ export function resolveAiConfig(dbConfig: RawConfig): AiConfig {
     model: str(c.model) || process.env.AI_MODEL || "deepseek-v4-pro",
   };
 }
+
+export type PlacesConfig = { apiKey: string };
+
+export function resolvePlacesConfig(dbConfig: RawConfig): PlacesConfig {
+  const c = dbConfig ?? {};
+  return {
+    apiKey: str(c.api_key) || process.env.GOOGLE_PLACES_API_KEY || "",
+  };
+}
