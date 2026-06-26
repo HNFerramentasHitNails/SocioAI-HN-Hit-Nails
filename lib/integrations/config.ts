@@ -35,3 +35,18 @@ export function resolveEmailConfig(dbConfig: RawConfig): EmailConfig {
     from: str(c.from) || process.env.EMAIL_FROM || "",
   };
 }
+
+export type AiConfig = {
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+};
+
+export function resolveAiConfig(dbConfig: RawConfig): AiConfig {
+  const c = dbConfig ?? {};
+  return {
+    apiKey: str(c.api_key) || process.env.AI_API_KEY || "",
+    baseUrl: str(c.base_url) || process.env.AI_BASE_URL || "https://api.deepseek.com",
+    model: str(c.model) || process.env.AI_MODEL || "deepseek-v4-pro",
+  };
+}

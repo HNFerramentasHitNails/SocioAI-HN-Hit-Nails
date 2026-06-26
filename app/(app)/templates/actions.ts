@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/supabase/auth";
 import { AIError, generateText } from "@/lib/ai/client";
 import { buildCopyPrompt, extractVariables, type CopyParams } from "@/lib/ai/copy";
+import { resolveAiConfig } from "@/lib/integrations/config";
 import type { Channel } from "@/lib/config";
 
 export type TemplateActionResult = {
@@ -87,10 +88,18 @@ export async function deleteTemplate(
 export async function generateBody(
   params: CopyParams,
 ): Promise<{ body?: string; error?: string }> {
-  await requireProfile();
+  const { supabase } = await requireProfile();
   try {
+    const { data } = await supabase
+      .from("integrations")
+      .select("config")
+      .eq("type", "ai")
+      .maybeSingle();
+    const aiConfig = resolveAiConfig(
+      (data?.config ?? null) as Record<string, unknown> | null,
+    );
     const { system, prompt } = buildCopyPrompt(params);
-    const body = await generateText({ system, prompt });
+    const body = await generateText({ system, prompt, config: aiConfig });
     return { body };
   } catch (e) {
     if (e instanceof AIError) return { error: e.message };

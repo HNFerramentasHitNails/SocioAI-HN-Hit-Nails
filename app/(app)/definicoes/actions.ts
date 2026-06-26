@@ -5,11 +5,13 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/supabase/auth";
 import {
   ChannelError,
+  resolveAiConfig,
   resolveEmailConfig,
   resolveWhatsappConfig,
 } from "@/lib/integrations/config";
 import * as evolution from "@/lib/integrations/evolution";
 import { sendEmail } from "@/lib/integrations/email";
+import { AIError, generateText } from "@/lib/ai/client";
 import type { TablesUpdate } from "@/lib/supabase/types";
 
 export type ChannelSettings = {
@@ -231,5 +233,70 @@ export async function testEmail(
     return { ok: true };
   } catch (e) {
     return { error: e instanceof ChannelError ? e.message : "Falha no envio de teste." };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// IA
+// ---------------------------------------------------------------------------
+
+export type AiSettings = {
+  baseUrl: string;
+  model: string;
+  enabled: boolean;
+  hasApiKey: boolean;
+};
+
+export async function getAiSettings(): Promise<AiSettings> {
+  const { byType } = await loadRows();
+  const ai = byType("ai");
+  const cfg = (ai?.config ?? {}) as Record<string, unknown>;
+  return {
+    baseUrl: (cfg.base_url as string) ?? "https://api.deepseek.com",
+    model: (cfg.model as string) ?? "deepseek-v4-pro",
+    enabled: ai?.enabled ?? true,
+    hasApiKey: Boolean(cfg.api_key) || Boolean(process.env.AI_API_KEY),
+  };
+}
+
+export async function saveAiConfig(
+  formData: FormData,
+): Promise<{ ok?: boolean; error?: string }> {
+  const { supabase, orgId, byType } = await loadRows();
+  const existing = (byType("ai")?.config ?? {}) as Record<string, unknown>;
+
+  const apiKeyInput = clean(formData.get("api_key"));
+  const config = {
+    base_url: clean(formData.get("base_url")) || "https://api.deepseek.com",
+    model: clean(formData.get("model")) || "deepseek-v4-pro",
+    api_key: apiKeyInput || (existing.api_key as string) || "",
+  };
+
+  const { error } = await supabase.from("integrations").upsert(
+    { org_id: orgId, type: "ai", config, enabled: true },
+    { onConflict: "org_id,type" },
+  );
+  if (error) return { error: error.message };
+  revalidatePath("/definicoes");
+  return { ok: true };
+}
+
+export async function testAi(): Promise<{
+  ok?: boolean;
+  error?: string;
+  sample?: string;
+}> {
+  const { byType } = await loadRows();
+  const cfg = resolveAiConfig(byType("ai")?.config);
+  try {
+    const sample = await generateText({
+      system: "Responde em português de Portugal, de forma muito breve.",
+      prompt: "Diz apenas: A ligação à IA está a funcionar.",
+      config: cfg,
+      maxTokens: 800,
+    });
+    return { ok: true, sample };
+  } catch (e) {
+    return { error: e instanceof AIError ? e.message : "Falha ao testar a IA." };
   }
 }
