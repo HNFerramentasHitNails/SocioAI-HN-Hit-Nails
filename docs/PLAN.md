@@ -100,6 +100,12 @@ whatsapp_sessions (org_id, session_name, status)
 - **Estado "entregue":** recibos de entrega via webhook (`messages.update`)
   atualizam a mensagem para "delivered" (guardamos o `provider_message_id`).
 - **"Sobre a empresa"** da org como contexto padrão da IA.
+- **Agente de conversação (IA):** quando o lead responde no WhatsApp, a IA
+  continua a conversa automaticamente para o conduzir à compra na loja
+  (webhook → histórico em `conversation_messages` → resposta com IA → envio).
+  Travões: opt-out, handoff para humano, limite de turnos, pausa por lead.
+  Página **Conversas** (ler, pausar/retomar IA, resposta manual). Config em
+  Definições → Agente de conversação.
 
 ### Próximos passos opcionais (fora do MVP)
 SMS, Stripe/billing, recuperação de password in-app, editar limites/quotas pela UI.

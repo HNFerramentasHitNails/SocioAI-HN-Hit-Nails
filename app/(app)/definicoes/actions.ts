@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { requireAdmin } from "@/lib/supabase/auth";
 import {
   ChannelError,
+  resolveAgentConfig,
   resolveAiConfig,
   resolveEmailConfig,
   resolvePlacesConfig,
@@ -306,6 +307,53 @@ export async function saveAiConfig(
 
   const { error } = await supabase.from("integrations").upsert(
     { org_id: orgId, type: "ai", config, enabled: true },
+    { onConflict: "org_id,type" },
+  );
+  if (error) return { error: error.message };
+  revalidatePath("/definicoes");
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Agente de IA (conversas)
+// ---------------------------------------------------------------------------
+
+export type AgentSettings = {
+  enabled: boolean;
+  storeUrl: string;
+  instructions: string;
+  maxTurns: number;
+};
+
+export async function getAgentSettings(): Promise<AgentSettings> {
+  const { byType } = await loadRows();
+  const row = byType("agent");
+  const cfg = resolveAgentConfig(row?.config);
+  return {
+    enabled: row?.enabled ?? false,
+    storeUrl: cfg.storeUrl,
+    instructions: cfg.instructions,
+    maxTurns: cfg.maxTurns,
+  };
+}
+
+export async function saveAgentConfig(
+  formData: FormData,
+): Promise<{ ok?: boolean; error?: string }> {
+  const { supabase, orgId } = await loadRows();
+  const maxTurns = Number(clean(formData.get("max_turns"))) || 20;
+  const config = {
+    store_url: clean(formData.get("store_url")) || "https://www.hnhitnails.com",
+    instructions: clean(formData.get("instructions")),
+    max_turns: maxTurns,
+  };
+  const { error } = await supabase.from("integrations").upsert(
+    {
+      org_id: orgId,
+      type: "agent",
+      config,
+      enabled: formData.get("enabled") === "on",
+    },
     { onConflict: "org_id,type" },
   );
   if (error) return { error: error.message };

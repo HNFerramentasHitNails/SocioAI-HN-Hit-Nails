@@ -112,6 +112,33 @@ export type Database = {
           },
         ]
       }
+      conversation_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          lead_id: string
+          org_id: string
+          role: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          lead_id: string
+          org_id: string
+          role: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
+          org_id?: string
+          role?: string
+        }
+        Relationships: []
+      }
       integrations: {
         Row: {
           config: Json
@@ -149,6 +176,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          ai_paused: boolean
           city: string | null
           company: string | null
           country: string | null
@@ -171,6 +199,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_paused?: boolean
           city?: string | null
           company?: string | null
           country?: string | null
@@ -193,6 +222,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_paused?: boolean
           city?: string | null
           company?: string | null
           country?: string | null

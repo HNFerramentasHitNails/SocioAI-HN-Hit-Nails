@@ -10,15 +10,18 @@ import type { AiConfig } from "@/lib/integrations/config";
 
 export class AIError extends Error {}
 
-export async function generateText({
-  system,
-  prompt,
+export type ChatMessage = {
+  role: "system" | "user" | "assistant";
+  content: string;
+};
+
+export async function generateChat({
+  messages,
   config,
-  maxTokens = 2000,
+  maxTokens = 1500,
   temperature = 0.85,
 }: {
-  system: string;
-  prompt: string;
+  messages: ChatMessage[];
   config: AiConfig;
   maxTokens?: number;
   temperature?: number;
@@ -38,10 +41,7 @@ export async function generateText({
       },
       body: JSON.stringify({
         model: config.model,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: prompt },
-        ],
+        messages,
         max_tokens: maxTokens,
         temperature,
       }),
@@ -63,4 +63,29 @@ export async function generateText({
     throw new AIError("A IA não devolveu conteúdo. Tenta novamente.");
   }
   return text;
+}
+
+/** Single-turn helper (system + user prompt). */
+export async function generateText({
+  system,
+  prompt,
+  config,
+  maxTokens = 2000,
+  temperature = 0.85,
+}: {
+  system: string;
+  prompt: string;
+  config: AiConfig;
+  maxTokens?: number;
+  temperature?: number;
+}): Promise<string> {
+  return generateChat({
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: prompt },
+    ],
+    config,
+    maxTokens,
+    temperature,
+  });
 }

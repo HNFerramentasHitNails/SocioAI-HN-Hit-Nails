@@ -51,6 +51,21 @@ export function resolveAiConfig(dbConfig: RawConfig): AiConfig {
   };
 }
 
+export type AgentConfig = {
+  storeUrl: string;
+  instructions: string;
+  maxTurns: number;
+};
+
+export function resolveAgentConfig(dbConfig: RawConfig): AgentConfig {
+  const c = dbConfig ?? {};
+  return {
+    storeUrl: str(c.store_url) || "https://www.hnhitnails.com",
+    instructions: str(c.instructions) || "",
+    maxTurns: Number(c.max_turns) || 20,
+  };
+}
+
 export type PlacesConfig = { apiKey: string };
 
 export function resolvePlacesConfig(dbConfig: RawConfig): PlacesConfig {
