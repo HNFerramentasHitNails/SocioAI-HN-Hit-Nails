@@ -5,9 +5,13 @@ import { ChannelError, type WhatsappConfig } from "./config";
  * Docs: https://doc.evolution-api.com
  *
  * Config: base URL, global API key (sent as the `apikey` header) and the
- * instance name. Statuses are normalised to the same labels used by the UI:
+ * instance name. Statuses are normalised to the labels used by the UI:
  * WORKING | SCAN_QR_CODE | STARTING | STOPPED.
  */
+
+function baseUrl(c: WhatsappConfig): string {
+  return c.url.replace(/\/+$/, "");
+}
 
 function authHeaders(c: WhatsappConfig): Record<string, string> {
   const h: Record<string, string> = { "Content-Type": "application/json" };
@@ -21,6 +25,11 @@ function assertConfigured(c: WhatsappConfig) {
       "O WhatsApp (Evolution API) não está configurado — falta o URL.",
     );
   }
+}
+
+function asDataUrl(b64: string | undefined | null): string | null {
+  if (!b64) return null;
+  return b64.startsWith("data:") ? b64 : `data:image/png;base64,${b64}`;
 }
 
 function normalizeState(state: string | undefined): string {
@@ -42,13 +51,18 @@ export async function getSessionStatus(c: WhatsappConfig): Promise<string> {
   let res: Response;
   try {
     res = await fetch(
-      `${c.url}/instance/connectionState/${encodeURIComponent(c.instance)}`,
+      `${baseUrl(c)}/instance/connectionState/${encodeURIComponent(c.instance)}`,
       { headers: authHeaders(c), cache: "no-store" },
     );
   } catch {
-    throw new ChannelError("Não foi possível contactar o servidor Evolution API.");
+    throw new ChannelError(
+      "Não foi possível contactar o servidor Evolution API. Verifica o URL.",
+    );
   }
   if (res.status === 404) return "STOPPED";
+  if (res.status === 401 || res.status === 403) {
+    throw new ChannelError("API Key da Evolution API inválida.");
+  }
   if (!res.ok) {
     throw new ChannelError(`Evolution API respondeu com erro (${res.status}).`);
   }
@@ -56,43 +70,65 @@ export async function getSessionStatus(c: WhatsappConfig): Promise<string> {
   return normalizeState(data?.instance?.state ?? data?.state);
 }
 
-/** Creates the instance (idempotent) so it can be connected/QR-scanned. */
-export async function startSession(c: WhatsappConfig): Promise<void> {
-  assertConfigured(c);
-  const res = await fetch(`${c.url}/instance/create`, {
-    method: "POST",
-    headers: authHeaders(c),
-    body: JSON.stringify({
-      instanceName: c.instance,
-      qrcode: true,
-      integration: "WHATSAPP-BAILEYS",
-    }),
-  });
-  // 200/201 created; 403/409 = already exists -> connect it instead.
-  if (!res.ok && res.status !== 403 && res.status !== 409) {
-    await fetch(
-      `${c.url}/instance/connect/${encodeURIComponent(c.instance)}`,
-      { headers: authHeaders(c) },
-    ).catch(() => {});
-  }
-}
-
-/** Returns the QR code as a data URL to link the WhatsApp device. */
+/** Fetches the QR code (data URL) from the connect endpoint. */
 export async function getQrCode(c: WhatsappConfig): Promise<string> {
   assertConfigured(c);
   const res = await fetch(
-    `${c.url}/instance/connect/${encodeURIComponent(c.instance)}`,
+    `${baseUrl(c)}/instance/connect/${encodeURIComponent(c.instance)}`,
     { headers: authHeaders(c), cache: "no-store" },
   );
   if (!res.ok) {
     throw new ChannelError("Não foi possível obter o QR code do WhatsApp.");
   }
   const data = await res.json();
-  const base64: string | undefined = data?.base64 ?? data?.qrcode?.base64;
-  if (!base64) {
+  const qr = asDataUrl(data?.base64 ?? data?.qrcode?.base64);
+  if (!qr) {
     throw new ChannelError("O QR code ainda não está disponível. Tenta novamente.");
   }
-  return base64.startsWith("data:") ? base64 : `data:image/png;base64,${base64}`;
+  return qr;
+}
+
+/**
+ * Creates the instance (if needed) and returns a QR code to scan. On Evolution
+ * v2 the create response already includes the QR; otherwise we fetch it from
+ * the connect endpoint.
+ */
+export async function startSession(c: WhatsappConfig): Promise<string | null> {
+  assertConfigured(c);
+  let res: Response;
+  try {
+    res = await fetch(`${baseUrl(c)}/instance/create`, {
+      method: "POST",
+      headers: authHeaders(c),
+      body: JSON.stringify({
+        instanceName: c.instance,
+        qrcode: true,
+        integration: "WHATSAPP-BAILEYS",
+      }),
+    });
+  } catch {
+    throw new ChannelError(
+      "Não foi possível contactar o servidor Evolution API. Verifica o URL.",
+    );
+  }
+
+  if (res.status === 401 || res.status === 403) {
+    // 403 can also mean "instance already exists" on some versions — try connect.
+    const qr = await getQrCode(c).catch(() => null);
+    if (qr) return qr;
+    throw new ChannelError(
+      "Acesso negado pela Evolution API (verifica a API Key) ou a instância já existe.",
+    );
+  }
+
+  if (res.ok) {
+    const data = await res.json().catch(() => null);
+    const qr = asDataUrl(data?.qrcode?.base64 ?? data?.base64);
+    if (qr) return qr;
+  }
+
+  // Created but no QR in the response (or already existed) -> fetch it.
+  return await getQrCode(c).catch(() => null);
 }
 
 /** Sends a text message to a phone number via Evolution API. */
@@ -104,7 +140,7 @@ export async function sendText(
   assertConfigured(c);
   const number = phone.replace(/\D/g, "");
   const res = await fetch(
-    `${c.url}/message/sendText/${encodeURIComponent(c.instance)}`,
+    `${baseUrl(c)}/message/sendText/${encodeURIComponent(c.instance)}`,
     {
       method: "POST",
       headers: authHeaders(c),

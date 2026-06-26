@@ -96,9 +96,16 @@ export function ChannelsSettings({ settings }: { settings: ChannelSettings }) {
   function onStart() {
     startStatus(async () => {
       const res = await startWhatsapp();
-      if (res.error) toast.error(res.error);
-      else {
-        toast.success("Sessão iniciada. Verifica o estado e lê o QR code.");
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      if (res.qr) {
+        setQr(res.qr);
+        setStatus("SCAN_QR_CODE");
+        toast.success("Lê o QR code com o WhatsApp.");
+      } else {
+        toast.success("Sessão iniciada. A verificar o estado…");
         onCheckStatus();
       }
     });

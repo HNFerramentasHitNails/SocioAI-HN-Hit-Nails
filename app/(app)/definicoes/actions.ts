@@ -177,12 +177,21 @@ export async function checkWhatsappStatus(): Promise<{
   }
 }
 
-export async function startWhatsapp(): Promise<{ ok?: boolean; error?: string }> {
+export async function startWhatsapp(): Promise<{
+  ok?: boolean;
+  error?: string;
+  qr?: string;
+  status?: string;
+}> {
   const { byType } = await loadRows();
   const cfg = resolveWhatsappConfig(byType("whatsapp")?.config);
   try {
-    await evolution.startSession(cfg);
-    return { ok: true };
+    const qr = await evolution.startSession(cfg);
+    return {
+      ok: true,
+      qr: qr ?? undefined,
+      status: qr ? "SCAN_QR_CODE" : undefined,
+    };
   } catch (e) {
     return { error: e instanceof ChannelError ? e.message : "Erro ao iniciar a sessão." };
   }
