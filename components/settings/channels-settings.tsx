@@ -12,6 +12,7 @@ import {
   startWhatsapp,
   testWhatsapp,
   testEmail,
+  configureWhatsappWebhook,
   type ChannelSettings,
 } from "@/app/(app)/definicoes/actions";
 import { Button } from "@/components/ui/button";
@@ -119,6 +120,14 @@ export function ChannelsSettings({ settings }: { settings: ChannelSettings }) {
     });
   }
 
+  function onConfigureWebhook() {
+    startStatus(async () => {
+      const res = await configureWhatsappWebhook();
+      if (res.error) toast.error(res.error);
+      else toast.success("Respostas ativadas (webhook configurado).");
+    });
+  }
+
   function onTestEmail() {
     startEm(async () => {
       const res = await testEmail(testTo);
@@ -208,6 +217,15 @@ export function ChannelsSettings({ settings }: { settings: ChannelSettings }) {
                 disabled={statusPending}
               >
                 <Play className="size-4" /> Iniciar sessão
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onConfigureWebhook}
+                disabled={statusPending}
+              >
+                Ativar respostas
               </Button>
             </div>
             {qr ? (

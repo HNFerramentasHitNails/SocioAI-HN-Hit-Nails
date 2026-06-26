@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 
 import { requireAdmin } from "@/lib/supabase/auth";
 import {
@@ -196,6 +197,31 @@ export async function startWhatsapp(): Promise<{
     };
   } catch (e) {
     return { error: e instanceof ChannelError ? e.message : "Erro ao iniciar a sessão." };
+  }
+}
+
+export async function configureWhatsappWebhook(): Promise<{
+  ok?: boolean;
+  error?: string;
+  url?: string;
+}> {
+  const { byType } = await loadRows();
+  const cfg = resolveWhatsappConfig(byType("whatsapp")?.config);
+  const h = await headers();
+  const host = h.get("host");
+  if (!host) return { error: "Não foi possível determinar o URL da app." };
+  const proto = host.startsWith("localhost") ? "http" : "https";
+  const secret = process.env.CRON_SECRET;
+  const url = `${proto}://${host}/api/webhooks/evolution${
+    secret ? `?secret=${secret}` : ""
+  }`;
+  try {
+    await evolution.setWebhook(cfg, url);
+    return { ok: true, url };
+  } catch (e) {
+    return {
+      error: e instanceof ChannelError ? e.message : "Falha ao configurar o webhook.",
+    };
   }
 }
 

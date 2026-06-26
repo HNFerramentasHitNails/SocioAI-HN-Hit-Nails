@@ -82,8 +82,19 @@ whatsapp_sessions (org_id, session_name, status)
 
 ---
 
-**✅ MVP completo (8/8 fases).** Próximos passos opcionais (fora do MVP):
-Marketplace/Google Places, SMS, Stripe/billing, convites de equipa por email.
+**✅ MVP completo (8/8 fases).**
+
+### Extras implementados pós-MVP
+- **WhatsApp via Evolution API** (em vez de WAHA) + IA configurável na UI.
+- **Receber respostas:** webhook `POST /api/webhooks/evolution` (botão "Ativar
+  respostas" configura-o no Evolution) → marca o lead como "Respondeu" e a
+  mensagem como "replied".
+- **Convites de equipa:** admin cria membros (Equipa → Convidar) + promover/
+  despromover/remover. Requer `SUPABASE_SERVICE_ROLE_KEY`.
+- **Limites/quotas:** leads (criação/import) e envio (mensal + semanal) impostos.
+
+### Próximos passos opcionais (fora do MVP)
+Marketplace/Google Places, SMS, Stripe/billing, recuperação de password in-app.
 
 ## Itens que dependem do cliente (chaves/infra)
 

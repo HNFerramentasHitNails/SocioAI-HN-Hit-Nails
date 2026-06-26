@@ -18,6 +18,63 @@ export type OrgIntegrations = {
   email: EmailConfig;
 };
 
+const SENT_STATUSES = ["sent", "delivered", "replied"] as const;
+
+/**
+ * Returns the remaining send budget per org (min of monthly message limit and
+ * weekly send limit, minus what was already sent in those windows).
+ */
+async function computeSendBudgets(
+  supabase: DB,
+  orgIds: string[],
+  nowIso: string,
+): Promise<Map<string, number>> {
+  const result = new Map<string, number>();
+  const now = new Date(nowIso);
+  const monthStart = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+  ).toISOString();
+  const weekDay = now.getUTCDay();
+  const back = weekDay === 0 ? 6 : weekDay - 1; // week starts Monday (UTC)
+  const ws = new Date(now);
+  ws.setUTCDate(now.getUTCDate() - back);
+  ws.setUTCHours(0, 0, 0, 0);
+  const weekStart = ws.toISOString();
+
+  for (const orgId of orgIds) {
+    const { data: org } = await supabase
+      .from("organization")
+      .select("monthly_message_limit, weekly_send_limit")
+      .eq("id", orgId)
+      .single();
+    const monthlyLimit = org?.monthly_message_limit ?? Number.POSITIVE_INFINITY;
+    const weeklyLimit = org?.weekly_send_limit ?? Number.POSITIVE_INFINITY;
+
+    const { count: monthCount } = await supabase
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", orgId)
+      .in("status", SENT_STATUSES)
+      .gte("sent_at", monthStart);
+    const { count: weekCount } = await supabase
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", orgId)
+      .in("status", SENT_STATUSES)
+      .gte("sent_at", weekStart);
+
+    const remaining = Math.max(
+      0,
+      Math.min(
+        monthlyLimit - (monthCount ?? 0),
+        weeklyLimit - (weekCount ?? 0),
+      ),
+    );
+    result.set(orgId, remaining);
+  }
+  return result;
+}
+
 export async function loadOrgIntegrations(
   supabase: DB,
   orgId: string,
@@ -152,6 +209,13 @@ export async function processQueue(
     (campaigns ?? []).map((c) => [c.id, c.status]),
   );
 
+  // Per-org send budget (monthly message + weekly send limits).
+  const remainingByOrg = await computeSendBudgets(
+    supabase,
+    [...new Set(messages.map((m) => m.org_id))],
+    now,
+  );
+
   const integrationsCache = new Map<string, OrgIntegrations>();
   let sent = 0;
   let failed = 0;
@@ -161,6 +225,10 @@ export async function processQueue(
     if (m.campaign_id && statusByCampaign.get(m.campaign_id) === "paused") {
       continue;
     }
+
+    // Respect the org send budget — leave excess queued for the next run.
+    const remaining = remainingByOrg.get(m.org_id) ?? Infinity;
+    if (remaining <= 0) continue;
 
     const lead = m.lead_id ? leadById.get(m.lead_id) : undefined;
     if (!lead || !m.body) {
@@ -209,6 +277,7 @@ export async function processQueue(
           .update({ status: "contatado" })
           .eq("id", lead.id);
       }
+      remainingByOrg.set(m.org_id, remaining - 1);
       sent++;
     } catch (e) {
       await supabase

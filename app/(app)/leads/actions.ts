@@ -40,12 +40,29 @@ function parseLeadForm(formData: FormData): LeadInput {
   };
 }
 
+async function activeLeadCount(
+  supabase: Awaited<ReturnType<typeof requireProfile>>["supabase"],
+): Promise<number> {
+  const { count } = await supabase
+    .from("leads")
+    .select("id", { count: "exact", head: true })
+    .is("deleted_at", null);
+  return count ?? 0;
+}
+
 export async function createLead(formData: FormData): Promise<ActionResult> {
   const { supabase, profile, user } = await requireProfile();
   const input = parseLeadForm(formData);
 
   if (!input.name && !input.company && !input.email && !input.phone) {
     return { error: "Preenche pelo menos o nome, empresa, email ou telefone." };
+  }
+
+  const limit = profile.organization?.leads_limit ?? Infinity;
+  if ((await activeLeadCount(supabase)) >= limit) {
+    return {
+      error: `Limite de leads atingido (${limit}). Remove leads ou aumenta o limite.`,
+    };
   }
 
   const { error } = await supabase.from("leads").insert({
@@ -155,11 +172,28 @@ export async function importLeads(rows: LeadInput[]): Promise<ActionResult> {
     return { error: "Nenhuma linha válida encontrada no ficheiro." };
   }
 
+  // Enforce the org lead limit (insert only up to the remaining capacity).
+  const limit = profile.organization?.leads_limit ?? Infinity;
+  const current = await activeLeadCount(supabase);
+  const remaining = Math.max(0, limit - current);
+  if (remaining <= 0) {
+    return { error: `Limite de leads atingido (${limit}).` };
+  }
+  const toInsert = valid.slice(0, remaining);
+  const skipped = valid.length - toInsert.length;
+
   const { error, count } = await supabase
     .from("leads")
-    .insert(valid, { count: "exact" });
+    .insert(toInsert, { count: "exact" });
 
   if (error) return { error: error.message };
   revalidatePath("/leads");
-  return { ok: true, count: count ?? valid.length };
+  return {
+    ok: true,
+    count: count ?? toInsert.length,
+    error:
+      skipped > 0
+        ? `Importados ${toInsert.length}; ${skipped} ignorados por atingir o limite de ${limit}.`
+        : undefined,
+  };
 }

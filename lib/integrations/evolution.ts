@@ -131,6 +131,31 @@ export async function startSession(c: WhatsappConfig): Promise<string | null> {
   return await getQrCode(c).catch(() => null);
 }
 
+/** Registers a webhook URL for incoming-message events on the instance. */
+export async function setWebhook(
+  c: WhatsappConfig,
+  url: string,
+): Promise<void> {
+  assertConfigured(c);
+  const res = await fetch(
+    `${baseUrl(c)}/webhook/set/${encodeURIComponent(c.instance)}`,
+    {
+      method: "POST",
+      headers: authHeaders(c),
+      body: JSON.stringify({
+        webhook: {
+          enabled: true,
+          url,
+          events: ["MESSAGES_UPSERT"],
+        },
+      }),
+    },
+  );
+  if (!res.ok) {
+    throw new ChannelError(`Falha ao configurar o webhook (${res.status}).`);
+  }
+}
+
 /** Sends a text message to a phone number via Evolution API. */
 export async function sendText(
   c: WhatsappConfig,

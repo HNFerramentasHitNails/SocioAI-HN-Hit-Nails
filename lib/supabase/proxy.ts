@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 
 /** Routes that do not require authentication. */
-const PUBLIC_PATHS = ["/login", "/auth", "/api/cron"];
+const PUBLIC_PATHS = ["/login", "/auth", "/api/cron", "/api/webhooks"];
 
 function isPublicPath(pathname: string) {
   if (pathname === "/") return true;
