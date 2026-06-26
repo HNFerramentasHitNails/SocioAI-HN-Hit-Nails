@@ -68,8 +68,11 @@ whatsapp_sessions (org_id, session_name, status)
   (estado/QR/iniciar/enviar) e Resend, render de variáveis de merge, dispatcher
   unificado, e Definições → Canais (config + estado + QR + envio de teste).
   Config por UI (DB) ou env. *Requer credenciais WAHA/Resend para enviar.*
-- [ ] **Fase 6 — Campanhas.** Wizard 5 passos, fila de envio (Cron), rate-limiting,
-  tracking de estado/respostas.
+- [x] **Fase 6 — Campanhas.** Schema `campaigns`/`campaign_leads`/`messages`
+  (+RLS), wizard de 5 passos (Info→Leads→Templates→Agendamento→Revisão), motor de
+  fila (`enqueue`/`processQueue`), envio manual + agendado via **Vercel Cron**
+  (`/api/cron/send`, protegido por `CRON_SECRET`, service role), pausar/retomar,
+  tracking de estados, dashboard ligada às mensagens/campanhas.
 - [ ] **Fase 7 — Dashboard + Analytics.** KPIs, gráficos por canal, saúde das campanhas.
 - [ ] **Fase 8 — Definições.** Branding (logo/cores) + config das integrações.
 

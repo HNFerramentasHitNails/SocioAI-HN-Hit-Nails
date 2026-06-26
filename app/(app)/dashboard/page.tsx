@@ -9,34 +9,48 @@ export default async function DashboardPage() {
   const { profile, supabase } = await requireProfile();
   const firstName = profile.full_name?.split(/\s+/)[0] ?? "";
 
-  const { count: leadsCount } = await supabase
-    .from("leads")
-    .select("*", { count: "exact", head: true })
-    .is("deleted_at", null);
-
-  const { count: respondedCount } = await supabase
-    .from("leads")
-    .select("*", { count: "exact", head: true })
-    .is("deleted_at", null)
-    .eq("status", "respondeu");
+  const [leads, sent, running, responded] = await Promise.all([
+    supabase
+      .from("leads")
+      .select("*", { count: "exact", head: true })
+      .is("deleted_at", null),
+    supabase
+      .from("messages")
+      .select("*", { count: "exact", head: true })
+      .in("status", ["sent", "delivered", "replied"]),
+    supabase
+      .from("campaigns")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "running"),
+    supabase
+      .from("leads")
+      .select("*", { count: "exact", head: true })
+      .is("deleted_at", null)
+      .eq("status", "respondeu"),
+  ]);
 
   const stats = [
     {
       title: "Leads",
-      value: String(leadsCount ?? 0),
+      value: String(leads.count ?? 0),
       icon: Users,
       hint: "Total de leads",
     },
-    { title: "Mensagens enviadas", value: "0", icon: Send, hint: "Este mês" },
+    {
+      title: "Mensagens enviadas",
+      value: String(sent.count ?? 0),
+      icon: Send,
+      hint: "Total enviadas",
+    },
     {
       title: "Campanhas ativas",
-      value: "0",
+      value: String(running.count ?? 0),
       icon: MessageSquare,
       hint: "Em execução",
     },
     {
       title: "Responderam",
-      value: String(respondedCount ?? 0),
+      value: String(responded.count ?? 0),
       icon: TrendingUp,
       hint: "Leads que responderam",
     },

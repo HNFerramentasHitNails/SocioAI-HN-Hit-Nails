@@ -14,6 +14,104 @@ export type Database = {
   }
   public: {
     Tables: {
+      campaign_leads: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          id: string
+          lead_id: string
+          org_id: string
+          status: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          id?: string
+          lead_id: string
+          org_id: string
+          status?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
+          org_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_leads_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_leads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          channels: string[]
+          created_at: string
+          created_by: string | null
+          daily_limit: number | null
+          email_subject: string | null
+          email_template_id: string | null
+          id: string
+          name: string
+          org_id: string
+          scheduled_at: string | null
+          status: Database["public"]["Enums"]["campaign_status"]
+          updated_at: string
+          whatsapp_template_id: string | null
+        }
+        Insert: {
+          channels?: string[]
+          created_at?: string
+          created_by?: string | null
+          daily_limit?: number | null
+          email_subject?: string | null
+          email_template_id?: string | null
+          id?: string
+          name: string
+          org_id: string
+          scheduled_at?: string | null
+          status?: Database["public"]["Enums"]["campaign_status"]
+          updated_at?: string
+          whatsapp_template_id?: string | null
+        }
+        Update: {
+          channels?: string[]
+          created_at?: string
+          created_by?: string | null
+          daily_limit?: number | null
+          email_subject?: string | null
+          email_template_id?: string | null
+          id?: string
+          name?: string
+          org_id?: string
+          scheduled_at?: string | null
+          status?: Database["public"]["Enums"]["campaign_status"]
+          updated_at?: string
+          whatsapp_template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integrations: {
         Row: {
           config: Json
@@ -126,6 +224,66 @@ export type Database = {
           },
           {
             foreignKeyName: "leads_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          body: string | null
+          campaign_id: string | null
+          channel: string
+          created_at: string
+          error: string | null
+          id: string
+          lead_id: string | null
+          org_id: string
+          replied_at: string | null
+          scheduled_at: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["message_status"]
+        }
+        Insert: {
+          body?: string | null
+          campaign_id?: string | null
+          channel: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          lead_id?: string | null
+          org_id: string
+          replied_at?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["message_status"]
+        }
+        Update: {
+          body?: string | null
+          campaign_id?: string | null
+          channel?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          lead_id?: string | null
+          org_id?: string
+          replied_at?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["message_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organization"
@@ -285,9 +443,22 @@ export type Database = {
       }
     }
     Enums: {
+      campaign_status:
+        | "draft"
+        | "scheduled"
+        | "running"
+        | "paused"
+        | "completed"
       channel: "whatsapp" | "email"
       lead_source: "manual" | "imported" | "marketplace"
       lead_status: "novo" | "contatado" | "respondeu"
+      message_status:
+        | "queued"
+        | "sent"
+        | "delivered"
+        | "failed"
+        | "replied"
+        | "skipped"
       user_role: "admin" | "member"
     }
     CompositeTypes: {
@@ -416,9 +587,18 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      campaign_status: ["draft", "scheduled", "running", "paused", "completed"],
       channel: ["whatsapp", "email"],
       lead_source: ["manual", "imported", "marketplace"],
       lead_status: ["novo", "contatado", "respondeu"],
+      message_status: [
+        "queued",
+        "sent",
+        "delivered",
+        "failed",
+        "replied",
+        "skipped",
+      ],
       user_role: ["admin", "member"],
     },
   },
