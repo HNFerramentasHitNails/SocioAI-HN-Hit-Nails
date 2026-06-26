@@ -5,7 +5,7 @@ export class ChannelError extends Error {}
 export type WhatsappConfig = {
   url: string;
   apiKey: string;
-  session: string;
+  instance: string;
 };
 
 export type EmailConfig = {
@@ -22,9 +22,9 @@ function str(value: unknown): string {
 export function resolveWhatsappConfig(dbConfig: RawConfig): WhatsappConfig {
   const c = dbConfig ?? {};
   return {
-    url: str(c.url) || process.env.WAHA_URL || "",
-    apiKey: str(c.api_key) || process.env.WAHA_API_KEY || "",
-    session: str(c.session) || process.env.WAHA_SESSION || "default",
+    url: str(c.url) || process.env.EVOLUTION_URL || "",
+    apiKey: str(c.api_key) || process.env.EVOLUTION_API_KEY || "",
+    instance: str(c.instance) || process.env.EVOLUTION_INSTANCE || "default",
   };
 }
 

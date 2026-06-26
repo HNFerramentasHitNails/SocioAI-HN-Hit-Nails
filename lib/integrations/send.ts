@@ -1,7 +1,7 @@
 import { ChannelError, type EmailConfig, type WhatsappConfig } from "./config";
 import { renderMessage } from "./merge";
 import { sendEmail } from "./email";
-import { sendText } from "./waha";
+import { sendText } from "./evolution";
 import type { Channel } from "@/lib/config";
 import type { Tables } from "@/lib/supabase/types";
 

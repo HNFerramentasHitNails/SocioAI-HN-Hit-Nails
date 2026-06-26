@@ -12,7 +12,7 @@ Email) com mensagens geradas por IA, para a **HN Hit Nails**.
 - **Tailwind v4** · **shadcn/ui** (tema escuro)
 - **Supabase** (Postgres + Auth + RLS + Storage)
 - **Vercel** (deploy + Cron)
-- WhatsApp via **WAHA** · Email via **Resend** · IA via **DeepSeek**
+- WhatsApp via **Evolution API** · Email via **Resend** · IA via **DeepSeek**
 
 ## Desenvolvimento
 
@@ -35,7 +35,7 @@ npm run dev                  # http://localhost:3000
 
 Ver [`.env.example`](.env.example). As essenciais para arrancar são
 `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`. As restantes
-(Resend, WAHA, DeepSeek, service role) são necessárias nas respetivas fases.
+(Resend, Evolution API, DeepSeek, service role) são necessárias nas respetivas fases.
 
 ## Estrutura
 

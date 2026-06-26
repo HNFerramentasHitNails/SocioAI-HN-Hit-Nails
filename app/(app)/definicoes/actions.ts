@@ -8,14 +8,14 @@ import {
   resolveEmailConfig,
   resolveWhatsappConfig,
 } from "@/lib/integrations/config";
-import * as waha from "@/lib/integrations/waha";
+import * as evolution from "@/lib/integrations/evolution";
 import { sendEmail } from "@/lib/integrations/email";
 import type { TablesUpdate } from "@/lib/supabase/types";
 
 export type ChannelSettings = {
   whatsapp: {
     url: string;
-    session: string;
+    instance: string;
     enabled: boolean;
     hasApiKey: boolean;
   };
@@ -48,9 +48,9 @@ export async function getChannelSettings(): Promise<ChannelSettings> {
   return {
     whatsapp: {
       url: (waCfg.url as string) ?? "",
-      session: (waCfg.session as string) ?? "default",
+      instance: (waCfg.instance as string) ?? "default",
       enabled: wa?.enabled ?? false,
-      hasApiKey: Boolean(waCfg.api_key) || Boolean(process.env.WAHA_API_KEY),
+      hasApiKey: Boolean(waCfg.api_key) || Boolean(process.env.EVOLUTION_API_KEY),
     },
     email: {
       from: (emCfg.from as string) ?? "",
@@ -110,7 +110,7 @@ export async function saveWhatsappConfig(
   const apiKeyInput = clean(formData.get("api_key"));
   const config = {
     url: clean(formData.get("url")),
-    session: clean(formData.get("session")) || "default",
+    instance: clean(formData.get("instance")) || "default",
     api_key: apiKeyInput || (existing.api_key as string) || "",
   };
 
@@ -162,10 +162,10 @@ export async function checkWhatsappStatus(): Promise<{
   const { byType } = await loadRows();
   const cfg = resolveWhatsappConfig(byType("whatsapp")?.config);
   try {
-    const status = await waha.getSessionStatus(cfg);
+    const status = await evolution.getSessionStatus(cfg);
     if (status === "SCAN_QR_CODE") {
       try {
-        const qr = await waha.getQrCode(cfg);
+        const qr = await evolution.getQrCode(cfg);
         return { status, qr };
       } catch {
         return { status };
@@ -181,7 +181,7 @@ export async function startWhatsapp(): Promise<{ ok?: boolean; error?: string }>
   const { byType } = await loadRows();
   const cfg = resolveWhatsappConfig(byType("whatsapp")?.config);
   try {
-    await waha.startSession(cfg);
+    await evolution.startSession(cfg);
     return { ok: true };
   } catch (e) {
     return { error: e instanceof ChannelError ? e.message : "Erro ao iniciar a sessão." };
@@ -195,7 +195,7 @@ export async function testWhatsapp(
   const cfg = resolveWhatsappConfig(byType("whatsapp")?.config);
   if (!phone.trim()) return { error: "Indica um número de telefone." };
   try {
-    await waha.sendText(
+    await evolution.sendText(
       cfg,
       phone,
       "✅ Mensagem de teste do LeadsPro — HN Hit Nails.",

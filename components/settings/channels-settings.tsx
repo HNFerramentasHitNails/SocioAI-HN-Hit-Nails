@@ -126,29 +126,30 @@ export function ChannelsSettings({ settings }: { settings: ChannelSettings }) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MessageCircle className="size-5 text-primary" /> WhatsApp (WAHA)
+            <MessageCircle className="size-5 text-primary" /> WhatsApp (Evolution
+            API)
           </CardTitle>
           <CardDescription>
-            Liga o teu servidor WAHA e a sessão de WhatsApp.
+            Liga o teu servidor Evolution API e a instância de WhatsApp.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
           <form onSubmit={onSaveWhatsapp} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="wa-url">WAHA URL</Label>
+              <Label htmlFor="wa-url">Evolution API URL</Label>
               <Input
                 id="wa-url"
                 name="url"
-                placeholder="https://waha.teudominio.com"
+                placeholder="https://evolution.teudominio.com"
                 defaultValue={settings.whatsapp.url}
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="wa-session">Sessão</Label>
+              <Label htmlFor="wa-instance">Instância</Label>
               <Input
-                id="wa-session"
-                name="session"
-                defaultValue={settings.whatsapp.session}
+                id="wa-instance"
+                name="instance"
+                defaultValue={settings.whatsapp.instance}
               />
             </div>
             <div className="flex flex-col gap-2">
