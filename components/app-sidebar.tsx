@@ -15,6 +15,7 @@ import {
   ChevronsUpDown,
   BarChart3,
   Store,
+  Users2,
 } from "lucide-react";
 
 import { signOut } from "@/app/login/actions";
@@ -54,6 +55,7 @@ const NAV: NavItem[] = [
   { title: "Marketplace", href: "/marketplace", icon: Store },
   { title: "Templates", href: "/templates", icon: FileText },
   { title: "Campanhas", href: "/campaigns", icon: Send },
+  { title: "Grupos WhatsApp", href: "/whatsapp-groups", icon: Users2 },
   { title: "Análises", href: "/analytics", icon: BarChart3 },
   { title: "Equipa", href: "/equipa", icon: UsersRound, adminOnly: true },
   { title: "Definições", href: "/definicoes", icon: Settings, adminOnly: true },

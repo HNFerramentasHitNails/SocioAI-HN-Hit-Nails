@@ -20,6 +20,15 @@ export type OrgIntegrations = {
 
 const SENT_STATUSES = ["sent", "delivered", "replied"] as const;
 
+// Anti-ban pacing for WhatsApp: random delay between sends + max run time.
+const WA_PACE_MIN_MS = 2500;
+const WA_PACE_MAX_MS = 7000;
+const MAX_RUN_MS = 50_000;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const paceDelay = () =>
+  WA_PACE_MIN_MS + Math.floor(Math.random() * (WA_PACE_MAX_MS - WA_PACE_MIN_MS));
+
 /**
  * Returns the remaining send budget per org (min of monthly message limit and
  * weekly send limit, minus what was already sent in those windows).
@@ -217,10 +226,14 @@ export async function processQueue(
   );
 
   const integrationsCache = new Map<string, OrgIntegrations>();
+  const runStart = Date.now();
   let sent = 0;
   let failed = 0;
 
   for (const m of messages) {
+    // Stop if we are close to the serverless time budget (rest stays queued).
+    if (Date.now() - runStart > MAX_RUN_MS) break;
+
     // Skip messages whose campaign is paused (leave them queued).
     if (m.campaign_id && statusByCampaign.get(m.campaign_id) === "paused") {
       continue;
@@ -246,7 +259,7 @@ export async function processQueue(
     }
 
     try {
-      await sendToLead({
+      const providerId = await sendToLead({
         channel: m.channel as Channel,
         body: m.body,
         subject:
@@ -259,7 +272,12 @@ export async function processQueue(
 
       await supabase
         .from("messages")
-        .update({ status: "sent", sent_at: now, error: null })
+        .update({
+          status: "sent",
+          sent_at: now,
+          error: null,
+          provider_message_id: providerId,
+        })
         .eq("id", m.id);
 
       if (m.campaign_id) {
@@ -279,6 +297,11 @@ export async function processQueue(
       }
       remainingByOrg.set(m.org_id, remaining - 1);
       sent++;
+
+      // Anti-ban pacing: pause between WhatsApp sends.
+      if (m.channel === "whatsapp") {
+        await sleep(paceDelay());
+      }
     } catch (e) {
       await supabase
         .from("messages")

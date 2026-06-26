@@ -92,13 +92,17 @@ whatsapp_sessions (org_id, session_name, status)
 - **Convites de equipa:** admin cria membros (Equipa → Convidar) + promover/
   despromover/remover. Requer `SUPABASE_SERVICE_ROLE_KEY`.
 - **Limites/quotas:** leads (criação/import) e envio (mensal + semanal) impostos.
-- **Marketplace de leads:** pesquisa de negócios locais por nicho+cidade via
-  **Google Places API (New)** (filtros: quantidade, avaliação mínima, website) e
-  importação como leads (origem `marketplace`, respeitando o limite). Key Google
-  configurável em Definições → Geração de leads.
+- **Marketplace de leads:** negócios locais por nicho+cidade via **Google Places
+  API** ou **OpenStreetMap (grátis)**; filtros e importação (origem `marketplace`).
+- **Grupos de WhatsApp:** listar grupos (Evolution) e importar membros como leads.
+- **Pacing anti-ban:** envio de WhatsApp com intervalo aleatório entre mensagens
+  e teto de tempo por execução (resto fica em fila).
+- **Estado "entregue":** recibos de entrega via webhook (`messages.update`)
+  atualizam a mensagem para "delivered" (guardamos o `provider_message_id`).
+- **"Sobre a empresa"** da org como contexto padrão da IA.
 
 ### Próximos passos opcionais (fora do MVP)
-SMS, Stripe/billing, recuperação de password in-app.
+SMS, Stripe/billing, recuperação de password in-app, editar limites/quotas pela UI.
 
 ## Itens que dependem do cliente (chaves/infra)
 

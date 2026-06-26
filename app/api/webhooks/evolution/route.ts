@@ -3,12 +3,13 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 
 /**
- * Receives Evolution API webhook events. We act on incoming WhatsApp messages
- * (messages.upsert, fromMe = false): match the sender to a lead, mark the lead
- * as "respondeu" and the last sent message as "replied".
+ * Receives Evolution API webhook events:
+ *  - messages.upsert (fromMe=false): incoming reply -> lead "respondeu" + message "replied"
+ *  - messages.update: delivery/read receipt -> message "delivered"
  *
  * Configure the Evolution webhook URL to:
  *   https://<app>/api/webhooks/evolution?secret=<CRON_SECRET>
+ * with events MESSAGES_UPSERT and MESSAGES_UPDATE.
  */
 export async function POST(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -23,7 +24,6 @@ export async function POST(request: NextRequest) {
   }
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    // Acknowledge to avoid retry storms; nothing we can do without service role.
     return NextResponse.json({ ok: false, reason: "service role missing" });
   }
 
@@ -35,15 +35,43 @@ export async function POST(request: NextRequest) {
   }
 
   const event = (payload as { event?: string })?.event ?? "";
-  if (!/messages.?upsert/i.test(event)) {
+  const isUpsert = /messages.?upsert/i.test(event);
+  const isUpdate = /messages.?update/i.test(event);
+  if (!isUpsert && !isUpdate) {
     return NextResponse.json({ ok: true, ignored: true });
   }
 
   const raw = (payload as { data?: unknown }).data;
   const items = Array.isArray(raw) ? raw : [raw];
   const supabase = createAdminClient();
+  const nowIso = new Date().toISOString();
 
-  // Load candidate leads once (single-tenant scale).
+  // --- Delivery / read receipts -> mark messages as delivered ---
+  if (isUpdate) {
+    const DELIVERED = ["DELIVERY_ACK", "DELIVERED", "READ", "PLAYED"];
+    let updated = 0;
+    for (const item of items) {
+      const it = item as {
+        keyId?: string;
+        messageId?: string;
+        status?: string;
+        key?: { id?: string };
+        update?: { status?: string };
+      } | null;
+      const id = it?.keyId ?? it?.key?.id ?? it?.messageId;
+      const status = (it?.status ?? it?.update?.status ?? "").toString().toUpperCase();
+      if (!id || !DELIVERED.includes(status)) continue;
+      const { error } = await supabase
+        .from("messages")
+        .update({ status: "delivered" })
+        .eq("provider_message_id", id)
+        .eq("status", "sent");
+      if (!error) updated++;
+    }
+    return NextResponse.json({ ok: true, updated });
+  }
+
+  // --- Incoming replies -> mark lead "respondeu" + message "replied" ---
   const { data: leads } = await supabase
     .from("leads")
     .select("id, phone, status")
@@ -63,16 +91,12 @@ export async function POST(request: NextRequest) {
   }
 
   let matched = 0;
-  const nowIso = new Date().toISOString();
-
   for (const item of items) {
-    const m = item as {
-      key?: { remoteJid?: string; fromMe?: boolean };
-    } | null;
+    const m = item as { key?: { remoteJid?: string; fromMe?: boolean } } | null;
     const key = m?.key;
     if (!key || key.fromMe) continue;
     const jid = key.remoteJid ?? "";
-    if (!jid || jid.endsWith("@g.us")) continue; // ignore groups
+    if (!jid || jid.endsWith("@g.us")) continue;
     const digits = jid.split("@")[0].replace(/\D/g, "");
     if (!digits) continue;
 
@@ -91,7 +115,7 @@ export async function POST(request: NextRequest) {
       .update({ status: "replied", replied_at: nowIso })
       .eq("lead_id", lead.id)
       .eq("channel", "whatsapp")
-      .eq("status", "sent");
+      .in("status", ["sent", "delivered"]);
   }
 
   return NextResponse.json({ ok: true, matched });

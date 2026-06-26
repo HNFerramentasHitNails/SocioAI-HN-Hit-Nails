@@ -241,6 +241,7 @@ export type Database = {
           id: string
           lead_id: string | null
           org_id: string
+          provider_message_id: string | null
           replied_at: string | null
           scheduled_at: string | null
           sent_at: string | null
@@ -269,6 +270,7 @@ export type Database = {
           id?: string
           lead_id?: string | null
           org_id?: string
+          provider_message_id?: string | null
           replied_at?: string | null
           scheduled_at?: string | null
           sent_at?: string | null

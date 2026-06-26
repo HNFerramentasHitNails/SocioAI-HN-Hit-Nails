@@ -18,14 +18,13 @@ export async function sendToLead(opts: {
   lead: Lead;
   whatsapp?: WhatsappConfig;
   email?: EmailConfig;
-}): Promise<void> {
+}): Promise<string | null> {
   const text = renderMessage(opts.body, opts.lead);
 
   if (opts.channel === "whatsapp") {
     if (!opts.lead.phone) throw new ChannelError("O lead não tem telefone.");
     if (!opts.whatsapp) throw new ChannelError("WhatsApp não configurado.");
-    await sendText(opts.whatsapp, opts.lead.phone, text);
-    return;
+    return await sendText(opts.whatsapp, opts.lead.phone, text);
   }
 
   if (!opts.lead.email) throw new ChannelError("O lead não tem email.");
@@ -36,4 +35,5 @@ export async function sendToLead(opts: {
     html: text.replace(/\n/g, "<br>"),
     text,
   });
+  return null;
 }

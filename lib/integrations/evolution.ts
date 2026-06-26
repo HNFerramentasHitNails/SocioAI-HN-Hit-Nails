@@ -146,7 +146,7 @@ export async function setWebhook(
         webhook: {
           enabled: true,
           url,
-          events: ["MESSAGES_UPSERT"],
+          events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE"],
         },
       }),
     },
@@ -156,12 +156,15 @@ export async function setWebhook(
   }
 }
 
-/** Sends a text message to a phone number via Evolution API. */
+/**
+ * Sends a text message to a phone number via Evolution API.
+ * Returns the provider message id (key.id) when available, for delivery tracking.
+ */
 export async function sendText(
   c: WhatsappConfig,
   phone: string,
   text: string,
-): Promise<void> {
+): Promise<string | null> {
   assertConfigured(c);
   const number = phone.replace(/\D/g, "");
   const res = await fetch(
@@ -175,4 +178,56 @@ export async function sendText(
   if (!res.ok) {
     throw new ChannelError(`Falha ao enviar mensagem de WhatsApp (${res.status}).`);
   }
+  const data = await res.json().catch(() => null);
+  return data?.key?.id ?? data?.messageId ?? null;
+}
+
+type Group = { id: string; subject: string; size: number };
+
+/** Lists the WhatsApp groups the instance belongs to. */
+export async function fetchGroups(c: WhatsappConfig): Promise<Group[]> {
+  assertConfigured(c);
+  const res = await fetch(
+    `${baseUrl(c)}/group/fetchAllGroups/${encodeURIComponent(
+      c.instance,
+    )}?getParticipants=false`,
+    { headers: authHeaders(c), cache: "no-store" },
+  );
+  if (!res.ok) {
+    throw new ChannelError(`Falha ao obter grupos (${res.status}).`);
+  }
+  const data = await res.json();
+  const list = Array.isArray(data) ? data : (data?.groups ?? []);
+  return (list as Record<string, unknown>[])
+    .map((g) => ({
+      id: String(g.id ?? ""),
+      subject: String(g.subject ?? g.name ?? "Grupo"),
+      size: Number(g.size ?? (Array.isArray(g.participants) ? g.participants.length : 0)),
+    }))
+    .filter((g) => g.id);
+}
+
+/** Returns the phone numbers (digits) of a group's participants. */
+export async function getGroupParticipants(
+  c: WhatsappConfig,
+  groupJid: string,
+): Promise<string[]> {
+  assertConfigured(c);
+  const res = await fetch(
+    `${baseUrl(c)}/group/participants/${encodeURIComponent(
+      c.instance,
+    )}?groupJid=${encodeURIComponent(groupJid)}`,
+    { headers: authHeaders(c), cache: "no-store" },
+  );
+  if (!res.ok) {
+    throw new ChannelError(`Falha ao obter membros do grupo (${res.status}).`);
+  }
+  const data = await res.json();
+  const participants = (data?.participants ?? data ?? []) as Record<
+    string,
+    unknown
+  >[];
+  return participants
+    .map((p) => String(p.id ?? "").split("@")[0].replace(/\D/g, ""))
+    .filter((d) => d.length >= 6);
 }
