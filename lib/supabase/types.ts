@@ -172,6 +172,72 @@ export type Database = {
           },
         ]
       }
+      templates: {
+        Row: {
+          about_context: string | null
+          body: string | null
+          channel: Database["public"]["Enums"]["channel"]
+          created_at: string
+          created_by: string | null
+          id: string
+          lead_stage: string | null
+          name: string
+          niche: string | null
+          objective: string | null
+          org_id: string
+          tone: string | null
+          updated_at: string
+          variables: string[]
+        }
+        Insert: {
+          about_context?: string | null
+          body?: string | null
+          channel?: Database["public"]["Enums"]["channel"]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_stage?: string | null
+          name: string
+          niche?: string | null
+          objective?: string | null
+          org_id: string
+          tone?: string | null
+          updated_at?: string
+          variables?: string[]
+        }
+        Update: {
+          about_context?: string | null
+          body?: string | null
+          channel?: Database["public"]["Enums"]["channel"]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_stage?: string | null
+          name?: string
+          niche?: string | null
+          objective?: string | null
+          org_id?: string
+          tone?: string | null
+          updated_at?: string
+          variables?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organization"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -184,6 +250,7 @@ export type Database = {
       }
     }
     Enums: {
+      channel: "whatsapp" | "email"
       lead_source: "manual" | "imported" | "marketplace"
       lead_status: "novo" | "contatado" | "respondeu"
       user_role: "admin" | "member"
@@ -314,6 +381,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      channel: ["whatsapp", "email"],
       lead_source: ["manual", "imported", "marketplace"],
       lead_status: ["novo", "contatado", "respondeu"],
       user_role: ["admin", "member"],

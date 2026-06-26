@@ -60,8 +60,10 @@ whatsapp_sessions (org_id, session_name, status)
 - [x] **Fase 3 — Leads.** Schema `leads` (+RLS, soft-delete), CRUD, import CSV,
   pipeline Novo/Contactado/Respondeu, filtros + pesquisa, lixeira (restaurar/
   eliminar), dashboard ligada às contagens reais.
-- [ ] **Fase 4 — Templates + IA.** Editor multicanal, variáveis de merge,
-  gerar/regenerar com DeepSeek, contexto "Sobre Você".
+- [x] **Fase 4 — Templates + IA.** Schema `templates` (+RLS), editor multicanal
+  (WhatsApp/Email), variáveis de merge, contexto "Sobre ti", gerar/regenerar com
+  **DeepSeek V4 Pro** (`deepseek-v4-pro`, modelo de raciocínio), contagem de
+  caracteres por canal, CRUD completo.
 - [ ] **Fase 5 — Canais.** WAHA (QR + estado) e Email (Resend) + envio de teste.
 - [ ] **Fase 6 — Campanhas.** Wizard 5 passos, fila de envio (Cron), rate-limiting,
   tracking de estado/respostas.
@@ -74,6 +76,19 @@ whatsapp_sessions (org_id, session_name, status)
 - **DeepSeek** → `AI_API_KEY` (+ confirmar `AI_MODEL`) — Fase 4.
 - **Resend** → `RESEND_API_KEY` + domínio verificado + `EMAIL_FROM` — Fase 5.
 - **WAHA** → VPS/Docker a correr WAHA → `WAHA_URL`, `WAHA_API_KEY`, `WAHA_SESSION` — Fase 5.
+
+## Variáveis a configurar na Vercel (produção)
+
+A config pública do Supabase tem fallback no código (funciona sem env vars). As
+**secretas** têm de ser adicionadas no painel da Vercel (Project → Settings →
+Environment Variables) à medida que as fases as exigem:
+
+- `AI_API_KEY` — necessária para a geração de IA funcionar em produção (Fase 4).
+- `AI_MODEL=deepseek-v4-pro`, `AI_BASE_URL=https://api.deepseek.com` (opcional, têm defaults).
+- `SUPABASE_SERVICE_ROLE_KEY` — tarefas de servidor/worker (Fases 5-6).
+- `RESEND_API_KEY`, `EMAIL_FROM` — envio de email (Fase 5).
+- `WAHA_URL`, `WAHA_API_KEY`, `WAHA_SESSION` — WhatsApp (Fase 5).
+- `CRON_SECRET` — proteger o endpoint de envio agendado (Fase 6).
 
 ## Fora de âmbito (futuro)
 
