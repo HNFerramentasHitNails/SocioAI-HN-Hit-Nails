@@ -10,6 +10,7 @@ import {
 } from "@/lib/integrations/config";
 import * as waha from "@/lib/integrations/waha";
 import { sendEmail } from "@/lib/integrations/email";
+import type { TablesUpdate } from "@/lib/supabase/types";
 
 export type ChannelSettings = {
   whatsapp: {
@@ -61,6 +62,43 @@ export async function getChannelSettings(): Promise<ChannelSettings> {
 
 function clean(v: FormDataEntryValue | null): string {
   return String(v ?? "").trim();
+}
+
+export type Branding = {
+  id: string;
+  name: string;
+  primary_color: string | null;
+  logo_url: string | null;
+};
+
+export async function getBranding(): Promise<Branding | null> {
+  const { supabase } = await requireAdmin();
+  const { data } = await supabase
+    .from("organization")
+    .select("id, name, primary_color, logo_url")
+    .limit(1)
+    .single();
+  return data;
+}
+
+export async function saveBranding(input: {
+  name?: string;
+  primaryColor?: string;
+  logoUrl?: string | null;
+}): Promise<{ ok?: boolean; error?: string }> {
+  const { supabase, profile } = await requireAdmin();
+  const update: TablesUpdate<"organization"> = {};
+  if (input.name?.trim()) update.name = input.name.trim();
+  if (input.primaryColor?.trim()) update.primary_color = input.primaryColor.trim();
+  if (input.logoUrl !== undefined) update.logo_url = input.logoUrl || null;
+
+  const { error } = await supabase
+    .from("organization")
+    .update(update)
+    .eq("id", profile.org_id!);
+  if (error) return { error: error.message };
+  revalidatePath("/", "layout");
+  return { ok: true };
 }
 
 export async function saveWhatsappConfig(

@@ -1,19 +1,37 @@
 import { PageHeader } from "@/components/page-header";
 import { ChannelsSettings } from "@/components/settings/channels-settings";
+import { BrandingSettings } from "@/components/settings/branding-settings";
 import { requireAdmin } from "@/lib/supabase/auth";
-import { getChannelSettings } from "./actions";
+import { getChannelSettings, getBranding } from "./actions";
 
 export default async function DefinicoesPage() {
   await requireAdmin();
-  const settings = await getChannelSettings();
+  const [settings, branding] = await Promise.all([
+    getChannelSettings(),
+    getBranding(),
+  ]);
 
   return (
     <>
       <PageHeader
         title="Definições"
-        description="Configura os canais de envio (WhatsApp e Email)."
+        description="Branding e canais de envio da tua organização."
       />
-      <ChannelsSettings settings={settings} />
+
+      <div className="flex flex-col gap-8">
+        {branding && (
+          <section>
+            <BrandingSettings branding={branding} />
+          </section>
+        )}
+
+        <section>
+          <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+            Canais
+          </h2>
+          <ChannelsSettings settings={settings} />
+        </section>
+      </div>
     </>
   );
 }

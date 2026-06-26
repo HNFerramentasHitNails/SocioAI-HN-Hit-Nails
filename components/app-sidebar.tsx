@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -12,6 +13,7 @@ import {
   Sparkles,
   LogOut,
   ChevronsUpDown,
+  BarChart3,
 } from "lucide-react";
 
 import { signOut } from "@/app/login/actions";
@@ -50,6 +52,7 @@ const NAV: NavItem[] = [
   { title: "Leads", href: "/leads", icon: Users },
   { title: "Templates", href: "/templates", icon: FileText },
   { title: "Campanhas", href: "/campaigns", icon: Send },
+  { title: "Análises", href: "/analytics", icon: BarChart3 },
   { title: "Equipa", href: "/equipa", icon: UsersRound, adminOnly: true },
   { title: "Definições", href: "/definicoes", icon: Settings, adminOnly: true },
 ];
@@ -68,11 +71,13 @@ export function AppSidebar({
   email,
   role,
   orgName,
+  logoUrl,
 }: {
   fullName: string | null;
   email: string | null;
   role: "admin" | "member";
   orgName: string;
+  logoUrl?: string | null;
 }) {
   const pathname = usePathname();
   const items = NAV.filter((i) => !i.adminOnly || role === "admin");
@@ -81,9 +86,20 @@ export function AppSidebar({
     <Sidebar>
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-1.5">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Sparkles className="size-4" />
-          </div>
+          {logoUrl ? (
+            <Image
+              src={logoUrl}
+              alt={orgName}
+              width={32}
+              height={32}
+              unoptimized
+              className="size-8 rounded-lg object-contain"
+            />
+          ) : (
+            <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Sparkles className="size-4" />
+            </div>
+          )}
           <div className="flex flex-col leading-tight">
             <span className="text-sm font-semibold">{APP_CONFIG.name}</span>
             <span className="text-xs text-muted-foreground">{orgName}</span>

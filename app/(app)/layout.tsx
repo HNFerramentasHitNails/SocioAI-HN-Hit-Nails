@@ -13,14 +13,24 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const { profile } = await requireProfile();
+  const org = profile.organization;
+
+  const brandStyle = org?.primary_color
+    ? ({
+        "--primary": org.primary_color,
+        "--sidebar-primary": org.primary_color,
+        "--ring": org.primary_color,
+      } as React.CSSProperties)
+    : undefined;
 
   return (
-    <SidebarProvider>
+    <SidebarProvider style={brandStyle}>
       <AppSidebar
         fullName={profile.full_name}
         email={profile.email}
         role={profile.role}
-        orgName={profile.organization?.name ?? "HN Hit Nails"}
+        orgName={org?.name ?? "HN Hit Nails"}
+        logoUrl={org?.logo_url ?? null}
       />
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur">

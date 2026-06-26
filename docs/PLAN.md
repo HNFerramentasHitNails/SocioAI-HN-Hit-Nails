@@ -73,8 +73,17 @@ whatsapp_sessions (org_id, session_name, status)
   fila (`enqueue`/`processQueue`), envio manual + agendado via **Vercel Cron**
   (`/api/cron/send`, protegido por `CRON_SECRET`, service role), pausar/retomar,
   tracking de estados, dashboard ligada às mensagens/campanhas.
-- [ ] **Fase 7 — Dashboard + Analytics.** KPIs, gráficos por canal, saúde das campanhas.
-- [ ] **Fase 8 — Definições.** Branding (logo/cores) + config das integrações.
+- [x] **Fase 7 — Dashboard + Analytics.** Página Análises com KPIs e gráficos
+  (recharts): leads ao longo do tempo, leads por estado, mensagens por canal,
+  saúde das campanhas; taxa de resposta.
+- [x] **Fase 8 — Definições/Branding.** Bucket de storage `branding`, edição de
+  nome/cor principal/logótipo da organização, aplicação da cor (CSS var) e do
+  logótipo em toda a app. (Canais já na Fase 5.)
+
+---
+
+**✅ MVP completo (8/8 fases).** Próximos passos opcionais (fora do MVP):
+Marketplace/Google Places, SMS, Stripe/billing, convites de equipa por email.
 
 ## Itens que dependem do cliente (chaves/infra)
 
