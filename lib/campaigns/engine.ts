@@ -52,23 +52,23 @@ async function computeSendBudgets(
 
   for (const orgId of orgIds) {
     const { data: org } = await supabase
-      .from("organization")
+      .from("outreach_org_settings")
       .select("monthly_message_limit, weekly_send_limit")
-      .eq("id", orgId)
-      .single();
+      .eq("organization_id", orgId)
+      .maybeSingle();
     const monthlyLimit = org?.monthly_message_limit ?? Number.POSITIVE_INFINITY;
     const weeklyLimit = org?.weekly_send_limit ?? Number.POSITIVE_INFINITY;
 
     const { count: monthCount } = await supabase
       .from("messages")
       .select("id", { count: "exact", head: true })
-      .eq("org_id", orgId)
+      .eq("organization_id", orgId)
       .in("status", SENT_STATUSES)
       .gte("sent_at", monthStart);
     const { count: weekCount } = await supabase
       .from("messages")
       .select("id", { count: "exact", head: true })
-      .eq("org_id", orgId)
+      .eq("organization_id", orgId)
       .in("status", SENT_STATUSES)
       .gte("sent_at", weekStart);
 
@@ -91,7 +91,7 @@ export async function loadOrgIntegrations(
   const { data } = await supabase
     .from("integrations")
     .select("type, config")
-    .eq("org_id", orgId);
+    .eq("organization_id", orgId);
   const rows = data ?? [];
   const wa = rows.find((r) => r.type === "whatsapp")?.config as
     | Record<string, unknown>
@@ -130,7 +130,7 @@ export async function enqueueCampaignMessages(
       lead.phone
     ) {
       rows.push({
-        org_id: opts.orgId,
+        organization_id: opts.orgId,
         campaign_id: opts.campaignId,
         lead_id: lead.id,
         channel: "whatsapp",
@@ -141,7 +141,7 @@ export async function enqueueCampaignMessages(
     }
     if (opts.channels.includes("email") && opts.emailBody && lead.email) {
       rows.push({
-        org_id: opts.orgId,
+        organization_id: opts.orgId,
         campaign_id: opts.campaignId,
         lead_id: lead.id,
         channel: "email",
@@ -177,7 +177,7 @@ export async function processQueue(
     .order("created_at", { ascending: true })
     .limit(limit);
 
-  if (opts.orgId) query = query.eq("org_id", opts.orgId);
+  if (opts.orgId) query = query.eq("organization_id", opts.orgId);
 
   const { data: messages, error } = await query;
   if (error) throw new Error(error.message);
@@ -221,7 +221,7 @@ export async function processQueue(
   // Per-org send budget (monthly message + weekly send limits).
   const remainingByOrg = await computeSendBudgets(
     supabase,
-    [...new Set(messages.map((m) => m.org_id))],
+    [...new Set(messages.map((m) => m.organization_id))],
     now,
   );
 
@@ -240,7 +240,7 @@ export async function processQueue(
     }
 
     // Respect the org send budget — leave excess queued for the next run.
-    const remaining = remainingByOrg.get(m.org_id) ?? Infinity;
+    const remaining = remainingByOrg.get(m.organization_id) ?? Infinity;
     if (remaining <= 0) continue;
 
     const lead = m.lead_id ? leadById.get(m.lead_id) : undefined;
@@ -252,10 +252,10 @@ export async function processQueue(
       continue;
     }
 
-    let integrations = integrationsCache.get(m.org_id);
+    let integrations = integrationsCache.get(m.organization_id);
     if (!integrations) {
-      integrations = await loadOrgIntegrations(supabase, m.org_id);
-      integrationsCache.set(m.org_id, integrations);
+      integrations = await loadOrgIntegrations(supabase, m.organization_id);
+      integrationsCache.set(m.organization_id, integrations);
     }
 
     try {
@@ -295,7 +295,7 @@ export async function processQueue(
           .update({ status: "contatado" })
           .eq("id", lead.id);
       }
-      remainingByOrg.set(m.org_id, remaining - 1);
+      remainingByOrg.set(m.organization_id, remaining - 1);
       sent++;
 
       // Anti-ban pacing: pause between WhatsApp sends.

@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
   // --- Incoming messages -> reply + AI agent ---
   const { data: leads } = await supabase
     .from("leads")
-    .select("id, phone, name, email, status, org_id, ai_paused, notes")
+    .select("id, phone, name, email, status, organization_id, ai_paused, notes")
     .not("phone", "is", null)
     .limit(5000);
 
@@ -131,21 +131,21 @@ export async function POST(request: NextRequest) {
     const { data: integ } = await supabase
       .from("integrations")
       .select("type, config, enabled")
-      .eq("org_id", orgId);
+      .eq("organization_id", orgId);
     const byType = (t: string) =>
       (integ ?? []).find((r) => r.type === t) as
         | { config: Record<string, unknown> | null; enabled: boolean }
         | undefined;
     const { data: org } = await supabase
-      .from("organization")
+      .from("outreach_org_settings")
       .select("about_context")
-      .eq("id", orgId)
-      .single();
+      .eq("organization_id", orgId)
+      .maybeSingle();
     const agentRow = byType("agent");
     const { data: flowRow } = await supabase
       .from("agent_flows")
       .select("graph")
-      .eq("org_id", orgId)
+      .eq("organization_id", orgId)
       .eq("active", true)
       .order("updated_at", { ascending: false })
       .limit(1)
@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
 
     // Log inbound message.
     await supabase.from("conversation_messages").insert({
-      org_id: lead.org_id,
+      organization_id: lead.organization_id,
       lead_id: lead.id,
       role: "lead",
       body: text,
@@ -212,7 +212,7 @@ export async function POST(request: NextRequest) {
 
     // --- AI agent auto-reply ---
     if (lead.ai_paused) continue;
-    const cfg = await getCfg(lead.org_id);
+    const cfg = await getCfg(lead.organization_id);
     if (!cfg.agentEnabled) continue;
 
     // Conversation history + assistant turn count (used by both paths).
@@ -248,7 +248,7 @@ export async function POST(request: NextRequest) {
           if (eff.type === "send") {
             await sendText(cfg.wa, lead.phone!, eff.body);
             await supabase.from("conversation_messages").insert({
-              org_id: lead.org_id,
+              organization_id: lead.organization_id,
               lead_id: lead.id,
               role: "assistant",
               body: eff.body,
@@ -305,7 +305,7 @@ export async function POST(request: NextRequest) {
       try {
         await sendText(cfg.wa, lead.phone!, handoff);
         await supabase.from("conversation_messages").insert({
-          org_id: lead.org_id,
+          organization_id: lead.organization_id,
           lead_id: lead.id,
           role: "assistant",
           body: handoff,
@@ -332,7 +332,7 @@ export async function POST(request: NextRequest) {
       });
       await sendText(cfg.wa, lead.phone!, reply);
       await supabase.from("conversation_messages").insert({
-        org_id: lead.org_id,
+        organization_id: lead.organization_id,
         lead_id: lead.id,
         role: "assistant",
         body: reply,

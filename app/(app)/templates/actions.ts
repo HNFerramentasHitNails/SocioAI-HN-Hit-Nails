@@ -47,7 +47,7 @@ export async function createTemplate(
   const { error } = await supabase.from("templates").insert({
     ...input,
     name: input.name,
-    org_id: profile.org_id!,
+    organization_id: profile.organization_id!,
     created_by: user.id,
   });
 

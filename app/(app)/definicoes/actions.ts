@@ -41,7 +41,7 @@ async function loadRows() {
     .select("type, config, enabled");
   const rows = (data ?? []) as Row[];
   const byType = (t: string) => rows.find((r) => r.type === t);
-  return { supabase, orgId: profile.org_id!, byType };
+  return { supabase, orgId: profile.organization_id!, byType };
 }
 
 export async function getChannelSettings(): Promise<ChannelSettings> {
@@ -79,13 +79,20 @@ export type Branding = {
 };
 
 export async function getBranding(): Promise<Branding | null> {
-  const { supabase } = await requireAdmin();
-  const { data } = await supabase
-    .from("organization")
-    .select("id, name, primary_color, logo_url, about_context")
-    .limit(1)
-    .single();
-  return data;
+  const { supabase, profile } = await requireAdmin();
+  const orgId = profile.organization_id;
+  const { data: org } = await supabase
+    .from("organizations")
+    .select("id, name, primary_color, logo_url")
+    .eq("id", orgId)
+    .maybeSingle();
+  if (!org) return null;
+  const { data: settings } = await supabase
+    .from("outreach_org_settings")
+    .select("about_context")
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  return { ...org, about_context: settings?.about_context ?? null };
 }
 
 export async function saveBranding(input: {
@@ -95,18 +102,30 @@ export async function saveBranding(input: {
   aboutContext?: string;
 }): Promise<{ ok?: boolean; error?: string }> {
   const { supabase, profile } = await requireAdmin();
-  const update: TablesUpdate<"organization"> = {};
-  if (input.name?.trim()) update.name = input.name.trim();
-  if (input.primaryColor?.trim()) update.primary_color = input.primaryColor.trim();
-  if (input.logoUrl !== undefined) update.logo_url = input.logoUrl || null;
-  if (input.aboutContext !== undefined)
-    update.about_context = input.aboutContext.trim() || null;
+  const orgId = profile.organization_id;
 
-  const { error } = await supabase
-    .from("organization")
-    .update(update)
-    .eq("id", profile.org_id!);
-  if (error) return { error: error.message };
+  // Identidade visual da org vive em `organizations` (core do ERP).
+  const orgUpdate: TablesUpdate<"organizations"> = {};
+  if (input.name?.trim()) orgUpdate.name = input.name.trim();
+  if (input.primaryColor?.trim()) orgUpdate.primary_color = input.primaryColor.trim();
+  if (input.logoUrl !== undefined) orgUpdate.logo_url = input.logoUrl || null;
+  if (Object.keys(orgUpdate).length) {
+    const { error } = await supabase
+      .from("organizations")
+      .update(orgUpdate)
+      .eq("id", orgId);
+    if (error) return { error: error.message };
+  }
+
+  // Contexto IA é específico do outreach → outreach_org_settings.
+  if (input.aboutContext !== undefined) {
+    const { error } = await supabase.from("outreach_org_settings").upsert(
+      { organization_id: orgId, about_context: input.aboutContext.trim() || null },
+      { onConflict: "organization_id" },
+    );
+    if (error) return { error: error.message };
+  }
+
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -126,12 +145,12 @@ export async function saveWhatsappConfig(
 
   const { error } = await supabase.from("integrations").upsert(
     {
-      org_id: orgId,
+      organization_id: orgId,
       type: "whatsapp",
       config,
       enabled: formData.get("enabled") === "on",
     },
-    { onConflict: "org_id,type" },
+    { onConflict: "organization_id,type" },
   );
   if (error) return { error: error.message };
   revalidatePath("/definicoes");
@@ -152,12 +171,12 @@ export async function saveEmailConfig(
 
   const { error } = await supabase.from("integrations").upsert(
     {
-      org_id: orgId,
+      organization_id: orgId,
       type: "email",
       config,
       enabled: formData.get("enabled") === "on",
     },
-    { onConflict: "org_id,type" },
+    { onConflict: "organization_id,type" },
   );
   if (error) return { error: error.message };
   revalidatePath("/definicoes");
@@ -352,8 +371,8 @@ export async function saveAiConfig(
   };
 
   const { error } = await supabase.from("integrations").upsert(
-    { org_id: orgId, type: "ai", config, enabled: true },
-    { onConflict: "org_id,type" },
+    { organization_id: orgId, type: "ai", config, enabled: true },
+    { onConflict: "organization_id,type" },
   );
   if (error) return { error: error.message };
   revalidatePath("/definicoes");
@@ -395,12 +414,12 @@ export async function saveAgentConfig(
   };
   const { error } = await supabase.from("integrations").upsert(
     {
-      org_id: orgId,
+      organization_id: orgId,
       type: "agent",
       config,
       enabled: formData.get("enabled") === "on",
     },
-    { onConflict: "org_id,type" },
+    { onConflict: "organization_id,type" },
   );
   if (error) return { error: error.message };
   revalidatePath("/definicoes");
@@ -433,8 +452,8 @@ export async function savePlacesConfig(
     api_key: apiKeyInput || (existing.api_key as string) || "",
   };
   const { error } = await supabase.from("integrations").upsert(
-    { org_id: orgId, type: "places", config, enabled: true },
-    { onConflict: "org_id,type" },
+    { organization_id: orgId, type: "places", config, enabled: true },
+    { onConflict: "organization_id,type" },
   );
   if (error) return { error: error.message };
   revalidatePath("/definicoes");

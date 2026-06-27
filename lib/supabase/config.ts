@@ -12,8 +12,8 @@
  */
 export const SUPABASE_URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL ??
-  "https://ccmtswezlqrwwhrhdblk.supabase.co";
+  "https://yvlzskbnewmomnxnxyix.supabase.co";
 
 export const SUPABASE_ANON_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
-  "sb_publishable_-fpxEkA3Wpv8FF1uWc-MdQ_-3C7tW9I";
+  "sb_publishable_uHXSBqtxkinxF058lYUv0Q_90V7zc1_";

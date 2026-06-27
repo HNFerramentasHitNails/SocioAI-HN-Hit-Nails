@@ -12,20 +12,37 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { requireAdmin } from "@/lib/supabase/auth";
-import type { Tables } from "@/lib/supabase/types";
+
+type MemberRow = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  role: "admin" | "member";
+  created_at: string;
+};
 
 export default async function EquipaPage() {
-  const { supabase, user } = await requireAdmin();
+  const { supabase, user, profile } = await requireAdmin();
 
   const { data: members } = await supabase
-    .from("profiles")
-    .select("id, full_name, email, role, last_login, created_at")
+    .from("organization_members")
+    .select("user_id, role, created_at")
+    .eq("organization_id", profile.organization_id)
     .order("created_at", { ascending: true });
 
-  const rows = (members ?? []) as Pick<
-    Tables<"profiles">,
-    "id" | "full_name" | "email" | "role" | "last_login" | "created_at"
-  >[];
+  const ids = (members ?? []).map((m) => m.user_id);
+  const { data: profs } = ids.length
+    ? await supabase.from("profiles").select("id, full_name, email").in("id", ids)
+    : { data: [] };
+  const profById = new Map((profs ?? []).map((p) => [p.id, p]));
+
+  const rows: MemberRow[] = (members ?? []).map((m) => ({
+    id: m.user_id,
+    full_name: profById.get(m.user_id)?.full_name ?? null,
+    email: profById.get(m.user_id)?.email ?? null,
+    role: m.role === "owner" || m.role === "admin" ? "admin" : "member",
+    created_at: m.created_at,
+  }));
 
   return (
     <>
@@ -43,7 +60,7 @@ export default async function EquipaPage() {
               <TableHead>Nome</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Função</TableHead>
-              <TableHead>Último acesso</TableHead>
+              <TableHead>Membro desde</TableHead>
               <TableHead className="w-12" />
             </TableRow>
           </TableHeader>
@@ -77,9 +94,7 @@ export default async function EquipaPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {m.last_login
-                      ? new Date(m.last_login).toLocaleDateString("pt-PT")
-                      : "Nunca"}
+                    {new Date(m.created_at).toLocaleDateString("pt-PT")}
                   </TableCell>
                   <TableCell>
                     <MemberActions

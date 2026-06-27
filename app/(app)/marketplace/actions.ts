@@ -96,7 +96,7 @@ export async function importMarketplaceLeads(
     has_website: l.has_website,
     status: "novo" as const,
     source: "marketplace" as const,
-    org_id: profile.org_id!,
+    organization_id: profile.organization_id!,
     created_by: user.id,
   }));
 

@@ -16,7 +16,7 @@ export async function createFlow(name: string): Promise<FlowResult> {
   const { data, error } = await supabase
     .from("agent_flows")
     .insert({
-      org_id: profile.org_id!,
+      organization_id: profile.organization_id!,
       name: clean,
       graph: defaultFlowGraph() as unknown as Json,
     })
@@ -65,7 +65,7 @@ export async function toggleFlowActive(
     await supabase
       .from("agent_flows")
       .update({ active: false })
-      .eq("org_id", profile.org_id!)
+      .eq("organization_id", profile.organization_id!)
       .neq("id", id);
   }
   const { error } = await supabase

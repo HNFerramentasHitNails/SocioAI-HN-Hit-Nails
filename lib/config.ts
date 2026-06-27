@@ -96,11 +96,18 @@ export const MERGE_VARIABLES = [
 ] as const;
 
 /** Lead pipeline stages. */
+// Colunas do pipeline visível (kanban / filtros).
 export const LEAD_STATUSES = ["novo", "contatado", "respondeu"] as const;
-export type LeadStatus = (typeof LEAD_STATUSES)[number];
+// Estado completo do lead (inclui os estados de funil pós-promoção a cliente).
+export type LeadStatus =
+  | (typeof LEAD_STATUSES)[number]
+  | "convertido"
+  | "perdido";
 
 export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
   novo: "Novo",
   contatado: "Contactado",
   respondeu: "Respondeu",
+  convertido: "Convertido",
+  perdido: "Perdido",
 };
