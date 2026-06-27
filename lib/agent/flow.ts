@@ -4,6 +4,7 @@ import {
   detectHandoff,
   type HistoryItem,
 } from "@/lib/agent/agent";
+import { generateText } from "@/lib/ai/client";
 import type { AgentConfig, AiConfig } from "@/lib/integrations/config";
 import {
   TERMINAL_KINDS,
@@ -16,6 +17,8 @@ import {
 /** Side effects the webhook applies after running a flow. */
 export type FlowEffect =
   | { type: "send"; body: string }
+  | { type: "send_email"; subject: string; body: string }
+  | { type: "add_note"; text: string }
   | { type: "pause_ai" }
   | { type: "set_status"; status: string }
   | { type: "handoff" };
@@ -29,7 +32,23 @@ export type FlowRunContext = {
   ai: AiConfig;
   agent: AgentConfig;
   catalog?: string;
+  /** Snapshot of the lead, for lead-based conditions. */
+  lead: { status: string; email: string | null; name: string | null };
 };
+
+/** Current hour (0-23) in mainland Portugal, for the business-hours node. */
+function lisbonHour(): number {
+  try {
+    const s = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/Lisbon",
+      hour: "2-digit",
+      hour12: false,
+    }).format(new Date());
+    return parseInt(s, 10) || 0;
+  } catch {
+    return new Date().getHours();
+  }
+}
 
 const MAX_STEPS = 40;
 
@@ -65,7 +84,10 @@ export async function runFlow(
     return byId.get(edge.target) ?? null;
   };
 
-  const evalCondition = (kind: FlowNodeKind, cfg: Record<string, unknown>) => {
+  const evalCondition = async (
+    kind: FlowNodeKind,
+    cfg: Record<string, unknown>,
+  ): Promise<boolean> => {
     switch (kind) {
       case "opt_out":
         return detectOptOut(ctx.text);
@@ -81,6 +103,37 @@ export async function runFlow(
       case "max_turns": {
         const limit = Number(cfg.value) || ctx.agent.maxTurns;
         return ctx.assistantTurns >= limit;
+      }
+      case "first_message":
+        return ctx.assistantTurns === 0;
+      case "lead_status":
+        return ctx.lead.status === str(cfg.status, "novo");
+      case "has_email":
+        return !!ctx.lead.email && ctx.lead.email.includes("@");
+      case "business_hours": {
+        const start = Number(cfg.start);
+        const end = Number(cfg.end);
+        const s = Number.isFinite(start) ? start : 9;
+        const e = Number.isFinite(end) ? end : 19;
+        const h = lisbonHour();
+        return h >= s && h < e;
+      }
+      case "ai_intent": {
+        const question = str(cfg.prompt).trim();
+        if (!question) return false;
+        try {
+          const ans = await generateText({
+            system:
+              "És um classificador. Responde APENAS com 'SIM' ou 'NÃO', sem mais nada.",
+            prompt: `Pergunta: ${question}\n\nMensagem do cliente: "${ctx.text}"`,
+            config: ctx.ai,
+            maxTokens: 8,
+            temperature: 0,
+          });
+          return /^\s*sim/i.test(ans);
+        } catch {
+          return false;
+        }
       }
       default:
         return false;
@@ -98,22 +151,46 @@ export async function runFlow(
     if (!kind) break;
 
     if (current.type === "condition") {
-      const result = evalCondition(kind, cfg);
+      const result = await evalCondition(kind, cfg);
       current = next(current.id, result ? "true" : "false");
       continue;
     }
 
     // action
     switch (kind) {
-      case "ai_reply": {
+      case "ai_reply":
+      case "ai_reply_focus": {
+        const focus = str(cfg.instruction).trim();
+        const agent =
+          kind === "ai_reply_focus" && focus
+            ? {
+                ...ctx.agent,
+                instructions: [ctx.agent.instructions, focus]
+                  .filter(Boolean)
+                  .join("\n"),
+              }
+            : ctx.agent;
         const body = await generateAgentReply({
           history: ctx.history,
           about: ctx.about,
-          agent: ctx.agent,
+          agent,
           ai: ctx.ai,
           catalog: ctx.catalog,
         });
         if (body.trim()) effects.push({ type: "send", body });
+        break;
+      }
+      case "send_email": {
+        const subject = str(cfg.subject, "HN Hit Nails");
+        const body = str(cfg.body);
+        if (ctx.lead.email && body.trim()) {
+          effects.push({ type: "send_email", subject, body });
+        }
+        break;
+      }
+      case "add_note": {
+        const text = str(cfg.text).trim();
+        if (text) effects.push({ type: "add_note", text });
         break;
       }
       case "send_text": {

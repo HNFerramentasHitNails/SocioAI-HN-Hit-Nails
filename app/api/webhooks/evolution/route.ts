@@ -4,9 +4,11 @@ import { createAdminClient } from "@/lib/supabase/server";
 import {
   resolveAgentConfig,
   resolveAiConfig,
+  resolveEmailConfig,
   resolveWhatsappConfig,
 } from "@/lib/integrations/config";
 import { sendText } from "@/lib/integrations/evolution";
+import { sendEmail } from "@/lib/integrations/email";
 import {
   generateAgentReply,
   detectOptOut,
@@ -104,7 +106,7 @@ export async function POST(request: NextRequest) {
   // --- Incoming messages -> reply + AI agent ---
   const { data: leads } = await supabase
     .from("leads")
-    .select("id, phone, status, org_id, ai_paused")
+    .select("id, phone, name, email, status, org_id, ai_paused, notes")
     .not("phone", "is", null)
     .limit(5000);
 
@@ -150,6 +152,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
     return {
       wa: resolveWhatsappConfig(byType("whatsapp")?.config),
+      email: resolveEmailConfig(byType("email")?.config),
       ai: resolveAiConfig(byType("ai")?.config),
       agent: resolveAgentConfig(agentRow?.config),
       agentEnabled: agentRow?.enabled ?? false,
@@ -239,6 +242,7 @@ export async function POST(request: NextRequest) {
           ai: cfg.ai,
           agent: cfg.agent,
           catalog: cfg.catalog,
+          lead: { status: lead.status, email: lead.email, name: lead.name },
         });
         for (const eff of effects) {
           if (eff.type === "send") {
@@ -250,6 +254,27 @@ export async function POST(request: NextRequest) {
               body: eff.body,
             });
             replied++;
+          } else if (eff.type === "send_email") {
+            if (lead.email) {
+              try {
+                await sendEmail(cfg.email, {
+                  to: lead.email,
+                  subject: eff.subject,
+                  html: eff.body.replace(/\n/g, "<br>"),
+                  text: eff.body,
+                });
+              } catch {
+                // ignore email failures
+              }
+            }
+          } else if (eff.type === "add_note") {
+            const stamp = new Date().toISOString().slice(0, 10);
+            const note = `[${stamp}] ${eff.text}`;
+            const prev = (lead.notes ?? "").trim();
+            await supabase
+              .from("leads")
+              .update({ notes: prev ? `${prev}\n${note}` : note })
+              .eq("id", lead.id);
           } else if (eff.type === "pause_ai" || eff.type === "handoff") {
             await supabase
               .from("leads")

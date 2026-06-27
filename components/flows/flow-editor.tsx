@@ -347,14 +347,80 @@ function PropertiesPanel({
         </Field>
       )}
 
+      {data.kind === "business_hours" && (
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Hora de início">
+            <Input
+              type="number"
+              min={0}
+              max={23}
+              value={Number(config.start) || 9}
+              onChange={(e) => onPatch({ start: Number(e.target.value) || 0 })}
+            />
+          </Field>
+          <Field label="Hora de fim">
+            <Input
+              type="number"
+              min={0}
+              max={24}
+              value={Number(config.end) || 19}
+              onChange={(e) => onPatch({ end: Number(e.target.value) || 0 })}
+            />
+          </Field>
+        </div>
+      )}
+
+      {data.kind === "ai_intent" && (
+        <Field label="Pergunta para a IA (responde sim/não)">
+          <textarea
+            className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+            value={typeof config.prompt === "string" ? config.prompt : ""}
+            placeholder="Ex.: O cliente está interessado em comprar?"
+            onChange={(e) => onPatch({ prompt: e.target.value })}
+          />
+        </Field>
+      )}
+
+      {data.kind === "ai_reply_focus" && (
+        <Field label="Instrução extra para esta resposta">
+          <textarea
+            className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+            value={typeof config.instruction === "string" ? config.instruction : ""}
+            placeholder="Ex.: Foca-te em fechar a venda hoje."
+            onChange={(e) => onPatch({ instruction: e.target.value })}
+          />
+        </Field>
+      )}
+
+      {data.kind === "send_email" && (
+        <>
+          <Field label="Assunto">
+            <Input
+              value={typeof config.subject === "string" ? config.subject : ""}
+              onChange={(e) => onPatch({ subject: e.target.value })}
+            />
+          </Field>
+          <Field label="Corpo do email">
+            <textarea
+              className="min-h-28 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+              value={typeof config.body === "string" ? config.body : ""}
+              onChange={(e) => onPatch({ body: e.target.value })}
+            />
+          </Field>
+        </>
+      )}
+
       {(data.kind === "send_text" ||
         data.kind === "send_store_link" ||
-        data.kind === "handoff_human") && (
+        data.kind === "handoff_human" ||
+        data.kind === "add_note") && (
         <Field
           label={
             data.kind === "send_store_link"
               ? "Mensagem antes do link (opcional)"
-              : "Mensagem"
+              : data.kind === "add_note"
+                ? "Nota"
+                : "Mensagem"
           }
         >
           <textarea
@@ -365,8 +431,10 @@ function PropertiesPanel({
         </Field>
       )}
 
-      {data.kind === "set_status" && (
-        <Field label="Novo estado">
+      {(data.kind === "set_status" || data.kind === "lead_status") && (
+        <Field
+          label={data.kind === "lead_status" ? "Estado a verificar" : "Novo estado"}
+        >
           <select
             className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
             value={typeof config.status === "string" ? config.status : "respondeu"}

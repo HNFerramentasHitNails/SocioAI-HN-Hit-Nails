@@ -14,11 +14,19 @@ export type FlowNodeKind =
   | "handoff"
   | "keywords"
   | "max_turns"
+  | "first_message"
+  | "lead_status"
+  | "has_email"
+  | "business_hours"
+  | "ai_intent"
   // actions (single output: "out")
   | "ai_reply"
+  | "ai_reply_focus"
   | "send_text"
   | "send_store_link"
+  | "send_email"
   | "set_status"
+  | "add_note"
   | "pause_ai"
   | "handoff_human";
 
@@ -88,11 +96,54 @@ export const NODE_DEFS: Record<FlowNodeKind, NodeDef> = {
     addable: true,
     defaultConfig: { value: 20 },
   },
+  first_message: {
+    category: "condition",
+    label: "Primeira mensagem?",
+    description: "Verdadeiro se for a primeira vez que a IA vai responder a este lead.",
+    addable: true,
+  },
+  lead_status: {
+    category: "condition",
+    label: "Estado do lead é…",
+    description: "Verdadeiro se o lead estiver no estado indicado.",
+    addable: true,
+    defaultConfig: { status: "novo" },
+  },
+  has_email: {
+    category: "condition",
+    label: "Tem email?",
+    description: "Verdadeiro se o lead tiver um email registado.",
+    addable: true,
+  },
+  business_hours: {
+    category: "condition",
+    label: "Dentro do horário?",
+    description:
+      "Verdadeiro se a hora atual (Portugal) estiver dentro do horário definido.",
+    addable: true,
+    defaultConfig: { start: 9, end: 19 },
+  },
+  ai_intent: {
+    category: "condition",
+    label: "A IA decide…",
+    description:
+      "A IA avalia a mensagem e responde sim/não à pergunta que definires.",
+    addable: true,
+    defaultConfig: { prompt: "O cliente está interessado em comprar?" },
+  },
   ai_reply: {
     category: "action",
     label: "Responder com IA",
     description: "Gera e envia a próxima resposta de vendas com a IA + catálogo.",
     addable: true,
+  },
+  ai_reply_focus: {
+    category: "action",
+    label: "Responder com IA (com foco)",
+    description:
+      "Como 'Responder com IA', mas com uma instrução extra só para esta resposta.",
+    addable: true,
+    defaultConfig: { instruction: "Foca-te em fechar a venda hoje." },
   },
   send_text: {
     category: "action",
@@ -108,12 +159,26 @@ export const NODE_DEFS: Record<FlowNodeKind, NodeDef> = {
     addable: true,
     defaultConfig: { text: "Vê aqui na nossa loja:" },
   },
+  send_email: {
+    category: "action",
+    label: "Enviar email",
+    description: "Envia um email ao lead (se tiver email). Usa o Resend.",
+    addable: true,
+    defaultConfig: { subject: "HN Hit Nails", body: "Olá!" },
+  },
   set_status: {
     category: "action",
     label: "Mudar estado do lead",
     description: "Atualiza o estado do lead no pipeline.",
     addable: true,
     defaultConfig: { status: "respondeu" },
+  },
+  add_note: {
+    category: "action",
+    label: "Adicionar nota",
+    description: "Acrescenta uma nota à ficha do lead (visível na equipa).",
+    addable: true,
+    defaultConfig: { text: "" },
   },
   pause_ai: {
     category: "action",
