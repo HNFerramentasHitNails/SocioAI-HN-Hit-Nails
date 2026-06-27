@@ -1,15 +1,22 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useTransition } from "react";
-import { MessageCircle, Mail, RefreshCw, Play, Send } from "lucide-react";
+import { useCallback, useEffect, useState, useTransition } from "react";
+import {
+  MessageCircle,
+  Mail,
+  RefreshCw,
+  Plug,
+  Send,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import {
   saveWhatsappConfig,
   saveEmailConfig,
   checkWhatsappStatus,
-  startWhatsapp,
+  saveAndStartWhatsapp,
   testWhatsapp,
   testEmail,
   configureWhatsappWebhook,
@@ -57,14 +64,29 @@ export function ChannelsSettings({ settings }: { settings: ChannelSettings }) {
   const [statusPending, startStatus] = useTransition();
   const [status, setStatus] = useState<string | null>(null);
   const [qr, setQr] = useState<string | null>(null);
+  const [connecting, setConnecting] = useState(false);
   const [testPhone, setTestPhone] = useState("");
   const [testTo, setTestTo] = useState("");
 
+  // Controlled WhatsApp form so "Criar / ligar" can persist before connecting.
+  const [waUrl, setWaUrl] = useState(settings.whatsapp.url);
+  const [waInstance, setWaInstance] = useState(settings.whatsapp.instance);
+  const [waKey, setWaKey] = useState("");
+  const [waEnabled, setWaEnabled] = useState(settings.whatsapp.enabled);
+
+  function buildWaForm(): FormData {
+    const fd = new FormData();
+    fd.set("url", waUrl);
+    fd.set("instance", waInstance);
+    if (waKey) fd.set("api_key", waKey);
+    if (waEnabled) fd.set("enabled", "on");
+    return fd;
+  }
+
   function onSaveWhatsapp(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
     startWa(async () => {
-      const res = await saveWhatsappConfig(fd);
+      const res = await saveWhatsappConfig(buildWaForm());
       if (res.error) toast.error(res.error);
       else toast.success("Configuração de WhatsApp guardada.");
     });
@@ -94,19 +116,70 @@ export function ChannelsSettings({ settings }: { settings: ChannelSettings }) {
     });
   }
 
-  function onStart() {
+  // Auto-activate replies once connected (called by the poller / connect flow).
+  const activateWebhook = useCallback(async () => {
+    const res = await configureWhatsappWebhook();
+    if (res.error) toast.error(res.error);
+    else toast.success("WhatsApp ligado e respostas ativadas! ✅");
+  }, []);
+
+  // While a QR is showing, poll the connection state and finish automatically.
+  useEffect(() => {
+    if (!connecting) return;
+    let tries = 0;
+    let done = false;
+    const timer = setInterval(async () => {
+      tries++;
+      const res = await checkWhatsappStatus();
+      if (res.status) setStatus(res.status);
+      // Refresh the QR if Evolution rotated it.
+      if (res.qr && res.status === "SCAN_QR_CODE") setQr(res.qr);
+      if (res.status === "WORKING") {
+        done = true;
+        setConnecting(false);
+        setQr(null);
+        clearInterval(timer);
+        await activateWebhook();
+      } else if (tries >= 40) {
+        // ~2 min — stop polling, keep the QR for a manual retry.
+        setConnecting(false);
+        clearInterval(timer);
+      }
+    }, 3000);
+    return () => {
+      if (!done) clearInterval(timer);
+    };
+  }, [connecting, activateWebhook]);
+
+  function onConnect() {
     startStatus(async () => {
-      const res = await startWhatsapp();
+      if (!waUrl.trim()) {
+        toast.error("Preenche o URL da Evolution API primeiro.");
+        return;
+      }
+      if (!waInstance.trim()) {
+        toast.error("Dá um nome à instância.");
+        return;
+      }
+      setWaEnabled(true);
+      const res = await saveAndStartWhatsapp(buildWaForm());
       if (res.error) {
         toast.error(res.error);
+        return;
+      }
+      if (res.status === "WORKING") {
+        setStatus("WORKING");
+        setQr(null);
+        await activateWebhook();
         return;
       }
       if (res.qr) {
         setQr(res.qr);
         setStatus("SCAN_QR_CODE");
-        toast.success("Lê o QR code com o WhatsApp.");
+        setConnecting(true);
+        toast.success("Lê o QR code — eu trato do resto.");
       } else {
-        toast.success("Sessão iniciada. A verificar o estado…");
+        toast.success("Instância criada. A verificar o estado…");
         onCheckStatus();
       }
     });
@@ -155,36 +228,38 @@ export function ChannelsSettings({ settings }: { settings: ChannelSettings }) {
               <Label htmlFor="wa-url">Evolution API URL</Label>
               <Input
                 id="wa-url"
-                name="url"
                 placeholder="https://evolution.teudominio.com"
-                defaultValue={settings.whatsapp.url}
+                value={waUrl}
+                onChange={(e) => setWaUrl(e.target.value)}
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="wa-instance">Instância</Label>
+              <Label htmlFor="wa-instance">Instância (nome à tua escolha)</Label>
               <Input
                 id="wa-instance"
-                name="instance"
-                defaultValue={settings.whatsapp.instance}
+                value={waInstance}
+                placeholder="ex.: hnhitnails"
+                onChange={(e) => setWaInstance(e.target.value)}
               />
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="wa-key">API Key</Label>
               <Input
                 id="wa-key"
-                name="api_key"
                 type="password"
+                value={waKey}
                 placeholder={
                   settings.whatsapp.hasApiKey ? "•••••• (definida)" : "Opcional"
                 }
+                onChange={(e) => setWaKey(e.target.value)}
               />
             </div>
             <div className="flex items-center justify-between">
               <Label htmlFor="wa-enabled">Ativo</Label>
               <Switch
                 id="wa-enabled"
-                name="enabled"
-                defaultChecked={settings.whatsapp.enabled}
+                checked={waEnabled}
+                onCheckedChange={setWaEnabled}
               />
             </div>
             <Button type="submit" disabled={waPending} className="self-start">
@@ -200,6 +275,20 @@ export function ChannelsSettings({ settings }: { settings: ChannelSettings }) {
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
+                size="sm"
+                className="gap-2"
+                onClick={onConnect}
+                disabled={statusPending || connecting}
+              >
+                {connecting ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Plug className="size-4" />
+                )}
+                {connecting ? "À espera da leitura…" : "Criar / ligar instância"}
+              </Button>
+              <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 className="gap-2"
@@ -210,24 +299,19 @@ export function ChannelsSettings({ settings }: { settings: ChannelSettings }) {
               </Button>
               <Button
                 type="button"
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={onStart}
-                disabled={statusPending}
-              >
-                <Play className="size-4" /> Iniciar sessão
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={onConfigureWebhook}
                 disabled={statusPending}
               >
-                Ativar respostas
+                Reativar respostas
               </Button>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Um clique cria a instância no teu servidor Evolution, mostra o QR e,
+              assim que o leres, liga e ativa as respostas automaticamente — não
+              precisas de abrir o painel do Evolution.
+            </p>
             {qr ? (
               <div className="flex flex-col items-center gap-2 pt-2">
                 <Image
@@ -238,8 +322,9 @@ export function ChannelsSettings({ settings }: { settings: ChannelSettings }) {
                   unoptimized
                   className="rounded-lg bg-white p-2"
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-center text-xs text-muted-foreground">
                   Abre o WhatsApp → Dispositivos ligados → Ligar dispositivo.
+                  {connecting ? " A aguardar a ligação…" : ""}
                 </p>
               </div>
             ) : null}
