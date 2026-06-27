@@ -131,6 +131,76 @@ export async function startSession(c: WhatsappConfig): Promise<string | null> {
   return await getQrCode(c).catch(() => null);
 }
 
+export type Instance = { name: string; status: string };
+
+/** Lists all instances on the Evolution server (uses the global API key). */
+export async function fetchInstances(c: WhatsappConfig): Promise<Instance[]> {
+  assertConfigured(c);
+  let res: Response;
+  try {
+    res = await fetch(`${baseUrl(c)}/instance/fetchInstances`, {
+      headers: authHeaders(c),
+      cache: "no-store",
+    });
+  } catch {
+    throw new ChannelError(
+      "Não foi possível contactar o servidor Evolution API. Verifica o URL.",
+    );
+  }
+  if (res.status === 401 || res.status === 403) {
+    throw new ChannelError(
+      "Acesso negado — para listar/eliminar instâncias é precisa a API Key global.",
+    );
+  }
+  if (!res.ok) {
+    throw new ChannelError(`Evolution API respondeu com erro (${res.status}).`);
+  }
+  const data = await res.json().catch(() => []);
+  const list = Array.isArray(data) ? data : (data?.instances ?? []);
+  return (list as Record<string, unknown>[])
+    .map((it) => {
+      const inst = (it.instance ?? it) as Record<string, unknown>;
+      const name = String(
+        inst.instanceName ?? inst.name ?? it.name ?? "",
+      );
+      const state = String(
+        inst.connectionStatus ?? inst.status ?? it.connectionStatus ?? "",
+      );
+      return { name, status: normalizeState(state) };
+    })
+    .filter((x) => x.name);
+}
+
+/** Logs out (disconnects) and deletes an instance by name. */
+export async function deleteInstance(
+  c: WhatsappConfig,
+  name: string,
+): Promise<void> {
+  assertConfigured(c);
+  // Best-effort logout first; a connected instance can't always be deleted.
+  await fetch(`${baseUrl(c)}/instance/logout/${encodeURIComponent(name)}`, {
+    method: "DELETE",
+    headers: authHeaders(c),
+  }).catch(() => {});
+  let res: Response;
+  try {
+    res = await fetch(`${baseUrl(c)}/instance/delete/${encodeURIComponent(name)}`, {
+      method: "DELETE",
+      headers: authHeaders(c),
+    });
+  } catch {
+    throw new ChannelError("Não foi possível contactar o servidor Evolution API.");
+  }
+  if (res.status === 401 || res.status === 403) {
+    throw new ChannelError(
+      "Acesso negado — eliminar instâncias requer a API Key global.",
+    );
+  }
+  if (!res.ok && res.status !== 404) {
+    throw new ChannelError(`Falha ao eliminar a instância (${res.status}).`);
+  }
+}
+
 /** Registers a webhook URL for incoming-message events on the instance. */
 export async function setWebhook(
   c: WhatsappConfig,

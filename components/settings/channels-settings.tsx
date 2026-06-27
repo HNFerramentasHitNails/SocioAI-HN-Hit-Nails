@@ -9,6 +9,8 @@ import {
   Plug,
   Send,
   Loader2,
+  Server,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,6 +22,8 @@ import {
   testWhatsapp,
   testEmail,
   configureWhatsappWebhook,
+  listWhatsappInstances,
+  deleteWhatsappInstance,
   type ChannelSettings,
 } from "@/app/(app)/definicoes/actions";
 import { Button } from "@/components/ui/button";
@@ -65,6 +69,9 @@ export function ChannelsSettings({ settings }: { settings: ChannelSettings }) {
   const [status, setStatus] = useState<string | null>(null);
   const [qr, setQr] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
+  const [instances, setInstances] = useState<
+    { name: string; status: string }[] | null
+  >(null);
   const [testPhone, setTestPhone] = useState("");
   const [testTo, setTestTo] = useState("");
 
@@ -201,6 +208,35 @@ export function ChannelsSettings({ settings }: { settings: ChannelSettings }) {
     });
   }
 
+  function onListInstances() {
+    startStatus(async () => {
+      const res = await listWhatsappInstances();
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      setInstances(res.instances ?? []);
+    });
+  }
+
+  function onDeleteInstance(name: string) {
+    if (
+      !confirm(
+        `Eliminar a instância "${name}" no servidor Evolution? Esta ação é irreversível.`,
+      )
+    )
+      return;
+    startStatus(async () => {
+      const res = await deleteWhatsappInstance(name);
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(`Instância "${name}" eliminada.`);
+      onListInstances();
+    });
+  }
+
   function onTestEmail() {
     startEm(async () => {
       const res = await testEmail(testTo);
@@ -328,6 +364,73 @@ export function ChannelsSettings({ settings }: { settings: ChannelSettings }) {
                 </p>
               </div>
             ) : null}
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-2 text-sm font-medium">
+                <Server className="size-4 text-muted-foreground" /> Instâncias no
+                servidor
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={onListInstances}
+                disabled={statusPending}
+              >
+                <RefreshCw className="size-4" />
+                {instances === null ? "Ver instâncias" : "Atualizar"}
+              </Button>
+            </div>
+            {instances !== null &&
+              (instances.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Não há instâncias no servidor.
+                </p>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {instances.map((inst) => {
+                    const isCurrent = inst.name === waInstance;
+                    return (
+                      <li
+                        key={inst.name}
+                        className="flex items-center gap-2 py-2"
+                      >
+                        <div className="flex min-w-0 flex-1 items-center gap-2">
+                          <span className="truncate text-sm">{inst.name}</span>
+                          {isCurrent && (
+                            <Badge variant="outline" className="text-[10px]">
+                              atual
+                            </Badge>
+                          )}
+                        </div>
+                        <StatusBadge status={inst.status} />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive"
+                          title={
+                            isCurrent
+                              ? "Eliminar a instância em uso"
+                              : "Eliminar instância"
+                          }
+                          onClick={() => onDeleteInstance(inst.name)}
+                          disabled={statusPending}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ))}
+            <p className="text-xs text-muted-foreground">
+              Cria uma nova instância acima (com outro nome) e elimina aqui a
+              antiga para não ficarem instâncias a mais no servidor.
+            </p>
           </div>
 
           <div className="flex items-end gap-2">

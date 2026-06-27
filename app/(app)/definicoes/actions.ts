@@ -220,6 +220,39 @@ export async function saveAndStartWhatsapp(
   return startWhatsapp();
 }
 
+export async function listWhatsappInstances(): Promise<{
+  instances?: evolution.Instance[];
+  error?: string;
+}> {
+  const { byType } = await loadRows();
+  const cfg = resolveWhatsappConfig(byType("whatsapp")?.config);
+  try {
+    const instances = await evolution.fetchInstances(cfg);
+    return { instances };
+  } catch (e) {
+    return {
+      error: e instanceof ChannelError ? e.message : "Falha ao listar instâncias.",
+    };
+  }
+}
+
+export async function deleteWhatsappInstance(
+  name: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const target = (name ?? "").trim();
+  if (!target) return { error: "Indica a instância a eliminar." };
+  const { byType } = await loadRows();
+  const cfg = resolveWhatsappConfig(byType("whatsapp")?.config);
+  try {
+    await evolution.deleteInstance(cfg, target);
+    return { ok: true };
+  } catch (e) {
+    return {
+      error: e instanceof ChannelError ? e.message : "Falha ao eliminar a instância.",
+    };
+  }
+}
+
 export async function configureWhatsappWebhook(): Promise<{
   ok?: boolean;
   error?: string;
