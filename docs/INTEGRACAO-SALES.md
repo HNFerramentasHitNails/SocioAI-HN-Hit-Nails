@@ -36,13 +36,24 @@ estrangeiras nativas.
 
 ## Anti-duplicação (o ponto central)
 
-1. **Pessoa única por org.** Antes de criar um lead/prospect verifica-se se já
-   existe `customer` ou `prospect` com o mesmo telefone/email normalizado na
-   mesma org → se existir, **liga-se** em vez de criar.
+> **A app nunca cria nem deduplica clientes.** Limita-se a inserir o lead; a BD
+> trata da ligação. O código do outreach não conhece a tabela `customers`.
+
+0. **Auto-link na BD (automático).** O trigger **`trg_leads_autolink`** corre
+   `BEFORE INSERT OR UPDATE OF email, phone, company` em `leads` e chama
+   `find_contact(org, email, phone, company)`. Se encontrar um `customer`/`prospect`
+   existente na org (por email/telefone/empresa normalizados), preenche
+   `leads.customer_id`/`leads.prospect_id` **sem duplicar a pessoa**. A app só faz
+   `insert` — o link acontece na BD.
+1. **Procedência.** Cada entidade criada pela app é registada em `external_refs`
+   com `connector_key='socio_ai'` (`entity_type='lead'`, `external_id` = id do lead),
+   para o ERP saber a origem. Escrito server-side com a service role (a tabela só
+   tem política de SELECT para membros — ver `lib/supabase/refs.ts`). Best-effort:
+   nunca bloqueia a criação do lead.
 2. **Promoção explícita.** `promote_lead_to_prospect(lead_id)` cria (ou liga) um
    `prospect` e grava `leads.prospect_id`. Quando o prospect é ganho, o fluxo do
-   ERP cria o `customer` e preenche `prospects.customer_id`; um trigger propaga
-   `leads.customer_id`.
+   ERP cria o `customer` e preenche `prospects.customer_id`; o trigger
+   `trg_sync_lead_customer` propaga `leads.customer_id`.
 3. **Vista 360.** `lead_360` junta lead + prospect + customer + métricas de
    mensagens para um histórico único do contacto.
 
@@ -70,13 +81,17 @@ estrangeiras nativas.
 
 ### Ação necessária na Vercel (projeto LeadsPro)
 
-Atualizar as variáveis de ambiente para apontarem ao ERP:
+Atualizar as variáveis de ambiente para apontarem ao ERP (valores em
+[`.env.example`](../.env.example)):
 
 - `NEXT_PUBLIC_SUPABASE_URL` = `https://yvlzskbnewmomnxnxyix.supabase.co`
   (ou remover — o fallback no código já aponta para o ERP).
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` = chave publishable do ERP (idem fallback).
-- **`SUPABASE_SERVICE_ROLE_KEY`** = service role **do ERP** (crítico: convites de
-  equipa e o worker de envio usam-na). A antiga aponta para o projeto errado.
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` = anon key (JWT) do ERP:
+  `eyJhbGciOiJIUzI1NiI...` (a do projeto `yvlzskbnewmomnxnxyix`; idem fallback no
+  código). Pública por design — protegida por RLS.
+- **`SUPABASE_SERVICE_ROLE_KEY`** = service role **do ERP** (server-only). Usada
+  por: convites de equipa, worker de envio (cron), webhook do WhatsApp e registo
+  de procedência em `external_refs`. **Nunca** vai para o browser.
 
 ### Auth
 
