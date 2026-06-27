@@ -13,6 +13,14 @@ import {
   Tag,
   PauseCircle,
   Headset,
+  Flag,
+  CircleDot,
+  AtSign,
+  Clock,
+  Brain,
+  Target,
+  Mail,
+  NotebookPen,
   type LucideIcon,
 } from "lucide-react";
 
@@ -25,10 +33,18 @@ const ICONS: Record<FlowNodeKind, LucideIcon> = {
   handoff: UserRound,
   keywords: Search,
   max_turns: Repeat,
+  first_message: Flag,
+  lead_status: CircleDot,
+  has_email: AtSign,
+  business_hours: Clock,
+  ai_intent: Brain,
   ai_reply: Sparkles,
+  ai_reply_focus: Target,
   send_text: Send,
   send_store_link: Link2,
+  send_email: Mail,
   set_status: Tag,
+  add_note: NotebookPen,
   pause_ai: PauseCircle,
   handoff_human: Headset,
 };
@@ -43,12 +59,28 @@ function summary(kind: FlowNodeKind, config: Record<string, unknown> = {}) {
     }
     case "max_turns":
       return `${Number(config.value) || 20} respostas`;
+    case "business_hours":
+      return `${Number(config.start) || 9}h–${Number(config.end) || 19}h`;
+    case "ai_intent": {
+      const p = typeof config.prompt === "string" ? config.prompt : "";
+      return p ? (p.length > 48 ? p.slice(0, 48) + "…" : p) : null;
+    }
+    case "ai_reply_focus": {
+      const i = typeof config.instruction === "string" ? config.instruction : "";
+      return i ? (i.length > 48 ? i.slice(0, 48) + "…" : i) : null;
+    }
+    case "send_email": {
+      const s = typeof config.subject === "string" ? config.subject : "";
+      return s || null;
+    }
+    case "add_note":
     case "send_text":
     case "send_store_link":
     case "handoff_human": {
       const t = typeof config.text === "string" ? config.text : "";
       return t ? (t.length > 48 ? t.slice(0, 48) + "…" : t) : null;
     }
+    case "lead_status":
     case "set_status": {
       const s = (typeof config.status === "string" ? config.status : "respondeu") as LeadStatus;
       return LEAD_STATUS_LABELS[s] ?? s;
