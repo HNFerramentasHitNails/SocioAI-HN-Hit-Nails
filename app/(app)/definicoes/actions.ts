@@ -207,6 +207,19 @@ export async function startWhatsapp(): Promise<{
   }
 }
 
+/**
+ * One-step setup: persists the form config (and enables the channel), then
+ * creates/starts the Evolution instance and returns a QR to scan. Lets the
+ * whole connection happen from the platform without touching the Evolution panel.
+ */
+export async function saveAndStartWhatsapp(
+  formData: FormData,
+): Promise<{ ok?: boolean; error?: string; qr?: string; status?: string }> {
+  const save = await saveWhatsappConfig(formData);
+  if (save.error) return { error: save.error };
+  return startWhatsapp();
+}
+
 export async function configureWhatsappWebhook(): Promise<{
   ok?: boolean;
   error?: string;
