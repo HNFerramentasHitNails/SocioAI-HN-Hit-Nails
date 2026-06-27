@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireProfile } from "@/lib/supabase/auth";
+import { recordExternalRefs } from "@/lib/supabase/refs";
 import type { LeadStatus } from "@/lib/config";
 
 export type ActionResult = { error?: string; ok?: boolean; count?: number };
@@ -65,15 +66,23 @@ export async function createLead(formData: FormData): Promise<ActionResult> {
     };
   }
 
-  const { error } = await supabase.from("leads").insert({
-    ...input,
-    status: input.status ?? "novo",
-    source: "manual",
-    organization_id: profile.organization_id!,
-    created_by: user.id,
-  });
+  // O lead é inserido tal-qual: o trigger `trg_leads_autolink` da BD liga-o
+  // automaticamente a um cliente/prospect existente (por email/telefone/empresa)
+  // sem duplicar. Aqui não criamos nem deduplicamos clientes.
+  const { data, error } = await supabase
+    .from("leads")
+    .insert({
+      ...input,
+      status: input.status ?? "novo",
+      source: "manual",
+      organization_id: profile.organization_id!,
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
 
   if (error) return { error: error.message };
+  await recordExternalRefs(profile.organization_id!, "lead", [data.id]);
   revalidatePath("/leads");
   return { ok: true };
 }
@@ -197,11 +206,17 @@ export async function importLeads(rows: LeadInput[]): Promise<ActionResult> {
   const toInsert = valid.slice(0, remaining);
   const skipped = valid.length - toInsert.length;
 
-  const { error, count } = await supabase
+  const { data, error, count } = await supabase
     .from("leads")
-    .insert(toInsert, { count: "exact" });
+    .insert(toInsert, { count: "exact" })
+    .select("id");
 
   if (error) return { error: error.message };
+  await recordExternalRefs(
+    profile.organization_id!,
+    "lead",
+    (data ?? []).map((r) => r.id),
+  );
   revalidatePath("/leads");
   return {
     ok: true,

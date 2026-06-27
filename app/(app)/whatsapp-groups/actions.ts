@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireProfile } from "@/lib/supabase/auth";
+import { recordExternalRefs } from "@/lib/supabase/refs";
 import { ChannelError, resolveWhatsappConfig } from "@/lib/integrations/config";
 import * as evolution from "@/lib/integrations/evolution";
 
@@ -90,10 +91,16 @@ export async function importGroupMembers(
     created_by: user.id,
   }));
 
-  const { error, count } = await supabase
+  const { data, error, count } = await supabase
     .from("leads")
-    .insert(rows, { count: "exact" });
+    .insert(rows, { count: "exact" })
+    .select("id");
   if (error) return { error: error.message };
+  await recordExternalRefs(
+    profile.organization_id!,
+    "lead",
+    (data ?? []).map((r) => r.id),
+  );
 
   revalidatePath("/leads");
   return { ok: true, count: count ?? fresh.length };

@@ -1384,6 +1384,7 @@ export type Database = {
           customer_class_id: string | null
           customer_type: string | null
           email: string | null
+          email_norm: string | null
           id: string
           is_active: boolean
           last_contact_at: string | null
@@ -1398,6 +1399,7 @@ export type Database = {
           organization_id: string
           overdue_days: number | null
           phone: string | null
+          phone_norm: string | null
           postal_code: string | null
           rfm_computed_at: string | null
           rfm_frequency: number | null
@@ -1431,6 +1433,7 @@ export type Database = {
           customer_class_id?: string | null
           customer_type?: string | null
           email?: string | null
+          email_norm?: string | null
           id?: string
           is_active?: boolean
           last_contact_at?: string | null
@@ -1445,6 +1448,7 @@ export type Database = {
           organization_id: string
           overdue_days?: number | null
           phone?: string | null
+          phone_norm?: string | null
           postal_code?: string | null
           rfm_computed_at?: string | null
           rfm_frequency?: number | null
@@ -1478,6 +1482,7 @@ export type Database = {
           customer_class_id?: string | null
           customer_type?: string | null
           email?: string | null
+          email_norm?: string | null
           id?: string
           is_active?: boolean
           last_contact_at?: string | null
@@ -1492,6 +1497,7 @@ export type Database = {
           organization_id?: string
           overdue_days?: number | null
           phone?: string | null
+          phone_norm?: string | null
           postal_code?: string | null
           rfm_computed_at?: string | null
           rfm_frequency?: number | null
@@ -2236,6 +2242,7 @@ export type Database = {
           customer_id: string | null
           deleted_at: string | null
           email: string | null
+          email_norm: string | null
           has_website: boolean | null
           id: string
           name: string | null
@@ -2243,6 +2250,7 @@ export type Database = {
           notes: string | null
           organization_id: string
           phone: string | null
+          phone_norm: string | null
           prospect_id: string | null
           quality_score: number | null
           rating: number | null
@@ -2261,6 +2269,7 @@ export type Database = {
           customer_id?: string | null
           deleted_at?: string | null
           email?: string | null
+          email_norm?: string | null
           has_website?: boolean | null
           id?: string
           name?: string | null
@@ -2268,6 +2277,7 @@ export type Database = {
           notes?: string | null
           organization_id?: string
           phone?: string | null
+          phone_norm?: string | null
           prospect_id?: string | null
           quality_score?: number | null
           rating?: number | null
@@ -2286,6 +2296,7 @@ export type Database = {
           customer_id?: string | null
           deleted_at?: string | null
           email?: string | null
+          email_norm?: string | null
           has_website?: boolean | null
           id?: string
           name?: string | null
@@ -2293,6 +2304,7 @@ export type Database = {
           notes?: string | null
           organization_id?: string
           phone?: string | null
+          phone_norm?: string | null
           prospect_id?: string | null
           quality_score?: number | null
           rating?: number | null
@@ -3416,6 +3428,7 @@ export type Database = {
           created_by: string | null
           customer_id: string | null
           email: string | null
+          email_norm: string | null
           estimated_value: number | null
           expected_close_date: string | null
           id: string
@@ -3426,6 +3439,7 @@ export type Database = {
           notes_short: string | null
           organization_id: string
           phone: string | null
+          phone_norm: string | null
           pipeline_stage: Database["public"]["Enums"]["pipeline_stage"]
           source: string | null
           updated_at: string
@@ -3438,6 +3452,7 @@ export type Database = {
           created_by?: string | null
           customer_id?: string | null
           email?: string | null
+          email_norm?: string | null
           estimated_value?: number | null
           expected_close_date?: string | null
           id?: string
@@ -3448,6 +3463,7 @@ export type Database = {
           notes_short?: string | null
           organization_id: string
           phone?: string | null
+          phone_norm?: string | null
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
           source?: string | null
           updated_at?: string
@@ -3460,6 +3476,7 @@ export type Database = {
           created_by?: string | null
           customer_id?: string | null
           email?: string | null
+          email_norm?: string | null
           estimated_value?: number | null
           expected_close_date?: string | null
           id?: string
@@ -3470,6 +3487,7 @@ export type Database = {
           notes_short?: string | null
           organization_id?: string
           phone?: string | null
+          phone_norm?: string | null
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
           source?: string | null
           updated_at?: string
@@ -4434,6 +4452,23 @@ export type Database = {
           },
         ]
       }
+      v_contacts: {
+        Row: {
+          company: string | null
+          created_at: string | null
+          customer_id: string | null
+          email: string | null
+          id: string | null
+          lead_id: string | null
+          name: string | null
+          organization_id: string | null
+          phone: string | null
+          prospect_id: string | null
+          stage: string | null
+          vat_number: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       _compute_vat_treatment: {
@@ -4528,6 +4563,19 @@ export type Database = {
       cron_recalculate_rfm_all: { Args: never; Returns: undefined }
       cron_refresh_prospect_scores: { Args: never; Returns: undefined }
       current_org_id: { Args: never; Returns: string }
+      find_contact: {
+        Args: {
+          p_company: string
+          p_email: string
+          p_org: string
+          p_phone: string
+          p_vat: string
+        }
+        Returns: {
+          customer_id: string
+          prospect_id: string
+        }[]
+      }
       generate_commission_statements: {
         Args: { _from: string; _org_id: string; _to: string }
         Returns: {
@@ -4736,6 +4784,7 @@ export type Database = {
       }
       next_invoice_number: { Args: { _org_id: string }; Returns: string }
       next_order_number: { Args: { _org_id: string }; Returns: string }
+      normalize_email: { Args: { _p: string }; Returns: string }
       normalize_phone: { Args: { _p: string }; Returns: string }
       org_connector_active: {
         Args: { _connector_key: string; _org_id: string }

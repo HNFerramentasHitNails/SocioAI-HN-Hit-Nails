@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireProfile } from "@/lib/supabase/auth";
+import { recordExternalRefs } from "@/lib/supabase/refs";
 import { resolvePlacesConfig } from "@/lib/integrations/config";
 import { searchPlaces, PlacesError, type PlaceLead } from "@/lib/integrations/places";
 import { searchOsm, OsmError } from "@/lib/integrations/osm";
@@ -100,10 +101,16 @@ export async function importMarketplaceLeads(
     created_by: user.id,
   }));
 
-  const { error, count } = await supabase
+  const { data, error, count } = await supabase
     .from("leads")
-    .insert(rows, { count: "exact" });
+    .insert(rows, { count: "exact" })
+    .select("id");
   if (error) return { error: error.message };
+  await recordExternalRefs(
+    profile.organization_id!,
+    "lead",
+    (data ?? []).map((r) => r.id),
+  );
 
   revalidatePath("/leads");
   const skipped = leads.length - slice.length;
