@@ -13,6 +13,8 @@ import {
   detectHandoff,
 } from "@/lib/agent/agent";
 import { getCatalogContext } from "@/lib/agent/catalog";
+import { runFlow } from "@/lib/agent/flow";
+import { isFlowGraph } from "@/lib/agent/flow-types";
 
 type EvoMessage = {
   key?: { remoteJid?: string; fromMe?: boolean };
@@ -138,6 +140,14 @@ export async function POST(request: NextRequest) {
       .eq("id", orgId)
       .single();
     const agentRow = byType("agent");
+    const { data: flowRow } = await supabase
+      .from("agent_flows")
+      .select("graph")
+      .eq("org_id", orgId)
+      .eq("active", true)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
     return {
       wa: resolveWhatsappConfig(byType("whatsapp")?.config),
       ai: resolveAiConfig(byType("ai")?.config),
@@ -145,6 +155,7 @@ export async function POST(request: NextRequest) {
       agentEnabled: agentRow?.enabled ?? false,
       about: ((org?.about_context as string) ?? "") || "",
       catalog: await getCatalogContext(supabase, orgId),
+      flow: isFlowGraph(flowRow?.graph) ? flowRow!.graph : null,
     };
   }
   async function getCfg(orgId: string) {
@@ -201,6 +212,63 @@ export async function POST(request: NextRequest) {
     const cfg = await getCfg(lead.org_id);
     if (!cfg.agentEnabled) continue;
 
+    // Conversation history + assistant turn count (used by both paths).
+    const { count: assistantTurns } = await supabase
+      .from("conversation_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("lead_id", lead.id)
+      .eq("role", "assistant");
+    const { data: histRows } = await supabase
+      .from("conversation_messages")
+      .select("role, body")
+      .eq("lead_id", lead.id)
+      .order("created_at", { ascending: true })
+      .limit(40);
+    const convHistory = (histRows ?? [])
+      .slice(-12)
+      .map((h) => ({ role: h.role as "lead" | "assistant", body: h.body }));
+
+    // --- Visual flow path (if an active flow exists for this org) ---
+    if (cfg.flow) {
+      try {
+        const effects = await runFlow(cfg.flow, {
+          text,
+          history: convHistory,
+          assistantTurns: assistantTurns ?? 0,
+          about: cfg.about,
+          ai: cfg.ai,
+          agent: cfg.agent,
+          catalog: cfg.catalog,
+        });
+        for (const eff of effects) {
+          if (eff.type === "send") {
+            await sendText(cfg.wa, lead.phone!, eff.body);
+            await supabase.from("conversation_messages").insert({
+              org_id: lead.org_id,
+              lead_id: lead.id,
+              role: "assistant",
+              body: eff.body,
+            });
+            replied++;
+          } else if (eff.type === "pause_ai" || eff.type === "handoff") {
+            await supabase
+              .from("leads")
+              .update({ ai_paused: true })
+              .eq("id", lead.id);
+          } else if (eff.type === "set_status") {
+            await supabase
+              .from("leads")
+              .update({ status: eff.status as never })
+              .eq("id", lead.id);
+          }
+        }
+      } catch {
+        // Never fail the webhook on flow/AI/send errors.
+      }
+      continue;
+    }
+
+    // --- Built-in sequence (no active flow) ---
     if (detectOptOut(text)) {
       await supabase.from("leads").update({ ai_paused: true }).eq("id", lead.id);
       continue;
@@ -224,29 +292,14 @@ export async function POST(request: NextRequest) {
       continue;
     }
 
-    const { count: turns } = await supabase
-      .from("conversation_messages")
-      .select("id", { count: "exact", head: true })
-      .eq("lead_id", lead.id)
-      .eq("role", "assistant");
-    if ((turns ?? 0) >= cfg.agent.maxTurns) {
+    if ((assistantTurns ?? 0) >= cfg.agent.maxTurns) {
       await supabase.from("leads").update({ ai_paused: true }).eq("id", lead.id);
       continue;
     }
 
-    const { data: hist } = await supabase
-      .from("conversation_messages")
-      .select("role, body")
-      .eq("lead_id", lead.id)
-      .order("created_at", { ascending: true })
-      .limit(40);
-    const history = (hist ?? [])
-      .slice(-12)
-      .map((h) => ({ role: h.role as "lead" | "assistant", body: h.body }));
-
     try {
       const reply = await generateAgentReply({
-        history,
+        history: convHistory,
         about: cfg.about,
         agent: cfg.agent,
         ai: cfg.ai,
