@@ -69,7 +69,7 @@ export async function createLead(formData: FormData): Promise<ActionResult> {
     ...input,
     status: input.status ?? "novo",
     source: "manual",
-    org_id: profile.org_id!,
+    organization_id: profile.organization_id!,
     created_by: user.id,
   });
 
@@ -97,6 +97,21 @@ export async function setLeadStatus(
 ): Promise<ActionResult> {
   const { supabase } = await requireProfile();
   const { error } = await supabase.from("leads").update({ status }).eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/leads");
+  return { ok: true };
+}
+
+/**
+ * Promove o lead a prospect no pipeline do ERP (`promote_lead_to_prospect`).
+ * Deduplica por telefone/email: se já existe cliente/prospect, liga em vez de
+ * criar. Marca o lead como contactado e grava `prospect_id`.
+ */
+export async function promoteLead(id: string): Promise<ActionResult> {
+  const { supabase } = await requireProfile();
+  const { error } = await supabase.rpc("promote_lead_to_prospect", {
+    _lead_id: id,
+  });
   if (error) return { error: error.message };
   revalidatePath("/leads");
   return { ok: true };
@@ -137,7 +152,7 @@ export async function emptyTrash(): Promise<ActionResult> {
   const { error } = await supabase
     .from("leads")
     .delete()
-    .eq("org_id", profile.org_id!)
+    .eq("organization_id", profile.organization_id!)
     .not("deleted_at", "is", null);
   if (error) return { error: error.message };
   revalidatePath("/leads");
@@ -164,7 +179,7 @@ export async function importLeads(rows: LeadInput[]): Promise<ActionResult> {
       ...r,
       status: "novo" as const,
       source: "imported" as const,
-      org_id: profile.org_id!,
+      organization_id: profile.organization_id!,
       created_by: user.id,
     }));
 

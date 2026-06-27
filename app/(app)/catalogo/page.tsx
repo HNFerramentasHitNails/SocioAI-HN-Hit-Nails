@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/page-header";
 import { CatalogView } from "@/components/catalog/catalog-view";
+import { SyncProductsButton } from "@/components/catalog/sync-products-button";
 import { requireProfile } from "@/lib/supabase/auth";
 
 export default async function CatalogoPage() {
@@ -16,7 +17,9 @@ export default async function CatalogoPage() {
       <PageHeader
         title="Catálogo"
         description="Produtos, formações e novidades que alimentam a IA nas recomendações."
-      />
+      >
+        <SyncProductsButton />
+      </PageHeader>
       <CatalogView items={items ?? []} />
     </>
   );

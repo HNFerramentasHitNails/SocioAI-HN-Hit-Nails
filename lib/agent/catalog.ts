@@ -59,7 +59,7 @@ export async function getCatalogContext(
     .eq("active", true)
     .order("category", { ascending: true })
     .order("name", { ascending: true });
-  if (orgId) query = query.eq("org_id", orgId);
+  if (orgId) query = query.eq("organization_id", orgId);
 
   const { data } = await query;
   if (!data || data.length === 0) return "";

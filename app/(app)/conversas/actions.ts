@@ -31,7 +31,7 @@ export async function sendManualReply(
 
   const { data: lead } = await supabase
     .from("leads")
-    .select("id, phone, org_id")
+    .select("id, phone, organization_id")
     .eq("id", leadId)
     .single();
   if (!lead?.phone) return { error: "O lead não tem telefone." };
@@ -54,7 +54,7 @@ export async function sendManualReply(
   }
 
   await supabase.from("conversation_messages").insert({
-    org_id: lead.org_id ?? profile.org_id!,
+    organization_id: lead.organization_id ?? profile.organization_id!,
     lead_id: leadId,
     role: "assistant",
     body: text.trim(),

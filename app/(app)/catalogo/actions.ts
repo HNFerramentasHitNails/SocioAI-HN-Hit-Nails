@@ -44,7 +44,7 @@ export async function createCatalogItem(
   const { error } = await supabase.from("catalog_items").insert({
     ...input,
     name: input.name,
-    org_id: profile.org_id!,
+    organization_id: profile.organization_id!,
   });
   if (error) return { error: error.message };
   revalidatePath("/catalogo");
@@ -107,7 +107,7 @@ export async function importCatalogItems(
   const valid: TablesInsert<"catalog_items">[] = rows
     .filter((r) => (r.name ?? "").trim())
     .map((r) => ({
-      org_id: profile.org_id!,
+      organization_id: profile.organization_id!,
       type: normType(r.type),
       name: r.name!.trim(),
       category: r.category?.trim() || null,
@@ -135,4 +135,17 @@ export async function deleteCatalogItem(id: string): Promise<CatalogResult> {
   if (error) return { error: error.message };
   revalidatePath("/catalogo");
   return { ok: true };
+}
+
+/**
+ * Espelha os produtos vendáveis do ERP (tabela `products`) na base de
+ * conhecimento da IA. Itens com `source_product_id` são geridos por esta sync —
+ * não os edites à mão. Devolve o total de produtos no catálogo.
+ */
+export async function syncProductsToCatalog(): Promise<CatalogResult> {
+  const { supabase } = await requireProfile();
+  const { data, error } = await supabase.rpc("sync_products_to_catalog");
+  if (error) return { error: error.message };
+  revalidatePath("/catalogo");
+  return { ok: true, count: data ?? 0 };
 }

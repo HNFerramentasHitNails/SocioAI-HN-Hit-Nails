@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   Mail,
   Phone,
+  UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,6 +24,7 @@ import {
   restoreLead,
   permanentDeleteLead,
   emptyTrash,
+  promoteLead,
 } from "@/app/(app)/leads/actions";
 import { LeadFormDialog } from "@/components/leads/lead-form-dialog";
 import { ImportCsvDialog } from "@/components/leads/import-csv-dialog";
@@ -290,6 +292,21 @@ export function LeadsView({
                                 {LEAD_STATUS_LABELS[s]}
                               </DropdownMenuItem>
                             ))}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              disabled={Boolean(lead.prospect_id)}
+                              onClick={() =>
+                                runAction(
+                                  () => promoteLead(lead.id),
+                                  "Lead promovido a prospect.",
+                                )
+                              }
+                            >
+                              <UserPlus className="size-4" />{" "}
+                              {lead.prospect_id
+                                ? "Já é prospect"
+                                : "Promover a prospect"}
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-destructive"

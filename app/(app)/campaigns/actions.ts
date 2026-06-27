@@ -22,7 +22,7 @@ export async function createCampaign(
   input: CreateCampaignInput,
 ): Promise<{ error?: string }> {
   const { supabase, profile, user } = await requireAdmin();
-  const orgId = profile.org_id!;
+  const orgId = profile.organization_id!;
 
   if (!input.name?.trim()) return { error: "Dá um nome à campanha." };
   if (!input.channels?.length) return { error: "Escolhe pelo menos um canal." };
@@ -60,7 +60,7 @@ export async function createCampaign(
   const { data: campaign, error: cErr } = await supabase
     .from("campaigns")
     .insert({
-      org_id: orgId,
+      organization_id: orgId,
       name: input.name.trim(),
       channels: input.channels,
       status: input.mode === "later" ? "scheduled" : "running",
@@ -81,7 +81,7 @@ export async function createCampaign(
     input.leadIds.map((lead_id) => ({
       campaign_id: campaign.id,
       lead_id,
-      org_id: orgId,
+      organization_id: orgId,
     })),
   );
 
@@ -129,7 +129,7 @@ export async function sendCampaignNow(
     .eq("campaign_id", id)
     .eq("status", "queued");
   await supabase.from("campaigns").update({ status: "running" }).eq("id", id);
-  await processQueue(supabase, { orgId: profile.org_id!, limit: 200 });
+  await processQueue(supabase, { orgId: profile.organization_id!, limit: 200 });
   revalidatePath(`/campaigns/${id}`);
   revalidatePath("/campaigns");
   return { ok: true };

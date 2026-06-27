@@ -14,7 +14,7 @@ function serviceRoleAvailable() {
 export async function inviteMember(
   formData: FormData,
 ): Promise<TeamActionResult> {
-  await requireAdmin();
+  const { profile } = await requireAdmin();
   if (!serviceRoleAvailable()) {
     return {
       error:
@@ -34,13 +34,28 @@ export async function inviteMember(
   }
 
   const admin = createAdminClient();
-  const { error } = await admin.auth.admin.createUser({
+  const { data: created, error } = await admin.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
     user_metadata: { full_name: fullName },
   });
   if (error) return { error: error.message };
+
+  const newId = created.user?.id;
+  if (!newId) return { error: "Não foi possível criar o utilizador." };
+
+  // Garante o profile e liga o utilizador à organização do admin.
+  await admin
+    .from("profiles")
+    .upsert({ id: newId, full_name: fullName || null, email });
+  const { error: memErr } = await admin.from("organization_members").insert({
+    organization_id: profile.organization_id,
+    user_id: newId,
+    role: "sales_rep",
+    status: "active",
+  });
+  if (memErr) return { error: memErr.message };
 
   revalidatePath("/equipa");
   return { ok: true };
@@ -50,21 +65,31 @@ export async function setMemberRole(
   id: string,
   role: "admin" | "member",
 ): Promise<TeamActionResult> {
-  const { supabase, user } = await requireAdmin();
+  const { user, profile } = await requireAdmin();
   if (id === user.id) {
     return { error: "Não podes alterar a tua própria função." };
   }
-  const { error } = await supabase
-    .from("profiles")
-    .update({ role })
-    .eq("id", id);
+  if (!serviceRoleAvailable()) {
+    return {
+      error:
+        "Falta a SUPABASE_SERVICE_ROLE_KEY (adiciona-a nas variáveis de ambiente da Vercel).",
+    };
+  }
+  // "member" do LeadsPro = papel de escrita no ERP (sales_rep).
+  const appRole = role === "admin" ? "admin" : "sales_rep";
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("organization_members")
+    .update({ role: appRole })
+    .eq("organization_id", profile.organization_id)
+    .eq("user_id", id);
   if (error) return { error: error.message };
   revalidatePath("/equipa");
   return { ok: true };
 }
 
 export async function removeMember(id: string): Promise<TeamActionResult> {
-  const { user } = await requireAdmin();
+  const { user, profile } = await requireAdmin();
   if (id === user.id) {
     return { error: "Não podes remover-te a ti próprio." };
   }
@@ -75,6 +100,12 @@ export async function removeMember(id: string): Promise<TeamActionResult> {
     };
   }
   const admin = createAdminClient();
+  // Remove a ligação à org; o utilizador auth é eliminado a seguir.
+  await admin
+    .from("organization_members")
+    .delete()
+    .eq("organization_id", profile.organization_id)
+    .eq("user_id", id);
   const { error } = await admin.auth.admin.deleteUser(id);
   if (error) return { error: error.message };
   revalidatePath("/equipa");
