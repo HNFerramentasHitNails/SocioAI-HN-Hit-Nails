@@ -110,6 +110,13 @@ whatsapp_sessions (org_id, session_name, status)
   `catalog_items`, editável em **Catálogo**) que **alimenta a IA** — o agente e a
   geração de templates recebem o catálogo ativo para recomendar itens reais.
   Semeado a partir da análise de hnhitnails.com.
+- **Construtor visual de automações (tipo n8n):** página **Automações** com um
+  canvas (React Flow) para desenhar o fluxo do agente de vendas — gatilho "lead
+  responde" → condições (opt-out, pedido de humano, palavras-chave, limite de
+  respostas) → ações (responder com IA, enviar mensagem/​link da loja, mudar
+  estado, pausar IA, passar a humano). Tabela `agent_flows` (+RLS), só um fluxo
+  ativo de cada vez; o webhook do WhatsApp executa o fluxo ativo (motor em
+  `lib/agent/flow.ts`) e, sem fluxo ativo, mantém o comportamento padrão.
 
 ### Próximos passos opcionais (fora do MVP)
 SMS, Stripe/billing, recuperação de password in-app, editar limites/quotas pela UI.
